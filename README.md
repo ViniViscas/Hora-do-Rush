@@ -23,7 +23,7 @@ O design completo está em [`docs/GDD.md`](docs/GDD.md).
 | Equilibrar no ar (após lombada / boca de lobo) | `A` / `D` | botões `<` `>` |
 | Código no portão | teclas numéricas | teclado na tela |
 
-Os botões de toque aparecem automaticamente em telas sensíveis ao toque. Para vê-los no PC, rode com o argumento `-- --toque`.
+Os botões de toque aparecem automaticamente no celular. Para vê-los no PC, rode com o argumento `-- --toque`.
 
 Cada partida gera um mapa novo. O número do mapa aparece na tela de fim. Para jogar um mapa específico, rode com `-- --semente=N`.
 
@@ -59,7 +59,17 @@ Toda a arte do protótipo é desenhada por código (sem imagens), para poder tro
 
 ## Exportar (PC / Android)
 
-No Godot: **Editor → Gerenciar modelos de exportação** → baixar os templates. Depois **Projeto → Exportar** e adicionar os presets *Windows Desktop* e *Android*. Android exige também o SDK do Android e o JDK configurados (**Editor → Configurações do Editor → Exportar → Android**).
+No Godot: **Editor → Gerenciar modelos de exportação** → baixar os templates (versão 4.7.2).
+
+**Windows:** o preset *Windows Desktop* já vem configurado em `export_presets.cfg`. Use **Projeto → Exportar → Exportar projeto**, ou pelo terminal:
+
+```
+godot --headless --path . --export-release "Windows Desktop" builds/windows/HoraDoRush.exe
+```
+
+Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada. A pasta `builds/` fica fora do Git.
+
+**Android (ainda não configurado):** adicionar o preset *Android* em **Projeto → Exportar**. Android exige também o SDK do Android e o JDK configurados (**Editor → Configurações do Editor → Exportar → Android**).
 
 ## Status
 

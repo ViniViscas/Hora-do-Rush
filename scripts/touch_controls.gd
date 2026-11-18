@@ -1,6 +1,8 @@
 extends CanvasLayer
-## Botões de toque para celular (tela deitada). Aparecem só em telas sensíveis ao toque,
+## Botões de toque para celular (tela deitada). Aparecem só no celular,
 ## ou no PC se o jogo for aberto com o argumento "-- --toque".
+## (Não dá para usar is_touchscreen_available(): com emulate_touch_from_mouse ligado,
+## ele diz que todo PC tem tela de toque.)
 
 const Config := preload("res://scripts/game_config.gd")
 const UI := preload("res://scripts/ui_util.gd")
@@ -13,8 +15,7 @@ var _botoes := {}
 
 func _ready() -> void:
 	layer = 5
-	visible = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") \
-		or OS.get_cmdline_user_args().has("--toque")
+	visible = OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--toque")
 	_criar("esquerda", "<")
 	_criar("direita", ">")
 	_criar("freio", "FREIO")
