@@ -48,8 +48,9 @@ const FOLGAS := [
 	["plato", "borda", -1], ["plato", "plato", -1],
 ]
 
-## Quantos obstáculos de pista por fase: [mínimo, máximo].
-## O mínimo é garantido; os extras só entram se couberem com as folgas.
+## Quantos obstáculos de pista por fase: [mínimo, máximo] (padrão; cada fase da
+## campanha passa a sua em Config.FASES). O mínimo é garantido; os extras só
+## entram se couberem com as folgas.
 const QUANTIDADE := {
 	"lombada": [3, 5], "boca": [3, 5], "terra": [1, 3], "cruzamento": [2, 3], "blitz": [1, 2],
 }
@@ -70,6 +71,7 @@ const NOMES_RESTAURANTE := [
 var _rng := RandomNumberGenerator.new()
 var _folga := {}
 var _ocupados: Array = []   # [tipo, x0, x1]
+var _quant: Dictionary = QUANTIDADE
 
 
 func _init() -> void:
@@ -79,8 +81,9 @@ func _init() -> void:
 
 
 ## Gera a fase inteira. Retorna um dicionário com o layout (ver o fim da função).
-func gerar(semente: int) -> Dictionary:
+func gerar(semente: int, quantidade: Dictionary = QUANTIDADE) -> Dictionary:
 	_rng.seed = semente
+	_quant = quantidade
 	_ocupados.clear()
 	_ocupar("borda", -800.0, INICIO_LIVRE)
 	_ocupar("borda", LARGURA - FIM_LIVRE, LARGURA + 800.0)
@@ -186,10 +189,10 @@ func _gerar_obstaculos_pista() -> Dictionary:
 
 	var saco := []
 	var extras := []
-	for tipo in QUANTIDADE:
-		for i in QUANTIDADE[tipo][0]:
+	for tipo in _quant:
+		for i in _quant[tipo][0]:
 			saco.append(tipo)
-		for i in _rng.randi_range(0, QUANTIDADE[tipo][1] - QUANTIDADE[tipo][0]):
+		for i in _rng.randi_range(0, _quant[tipo][1] - _quant[tipo][0]):
 			extras.append(tipo)
 	_embaralhar(extras)
 	var usado := 0.0
@@ -234,8 +237,8 @@ func _gerar_obstaculos_pista() -> Dictionary:
 
 
 func _tem_minimos(pista: Dictionary) -> bool:
-	for tipo in QUANTIDADE:
-		if pista[tipo].size() < QUANTIDADE[tipo][0]:
+	for tipo in _quant:
+		if pista[tipo].size() < _quant[tipo][0]:
 			return false
 	return true
 

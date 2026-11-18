@@ -84,8 +84,69 @@ const DIFICULDADES := {
 	},
 }
 
-# --- Fase ---
-const ENTREGAS_FASE := 5
+# --- Campanha: fases em sequência ---
+# Cada bag tem sua própria campanha. Vencer uma fase libera a próxima e paga em R$.
+# entregas: quantas entregas fecham a fase
+# tempo: multiplica o tempo_fase da bag (que vale para 5 entregas) proporcional às entregas
+# quantidade: obstáculos de pista [mínimo, máximo] passados ao gerador (gerador_fase.gd)
+# chuva / cet / blitz: multiplicam as chances da bag (0 = não aparece nessa fase)
+const FASES := [
+	{
+		"nome": "Primeiro dia",
+		"descricao": "Lombadas, buracos e cruzamentos. Sem blitz, sem chuva, sem CET.",
+		"entregas": 3,
+		"tempo": 1.2,
+		"quantidade": {"lombada": [2, 3], "boca": [1, 2], "terra": [1, 1], "cruzamento": [1, 2], "blitz": [0, 0]},
+		"chuva": 0.0, "cet": 0.0, "blitz": 0.0,
+	},
+	{
+		"nome": "Pegando o jeito",
+		"descricao": "Começam as blitzes.",
+		"entregas": 4,
+		"tempo": 1.1,
+		"quantidade": {"lombada": [3, 4], "boca": [2, 3], "terra": [1, 2], "cruzamento": [2, 2], "blitz": [1, 1]},
+		"chuva": 0.0, "cet": 0.0, "blitz": 1.0,
+	},
+	{
+		"nome": "Sexta à noite",
+		"descricao": "Pode chover, e a CET está de olho na sua CNH.",
+		"entregas": 5,
+		"tempo": 1.0,
+		"quantidade": {"lombada": [3, 5], "boca": [3, 5], "terra": [1, 3], "cruzamento": [2, 3], "blitz": [1, 2]},
+		"chuva": 1.0, "cet": 1.0, "blitz": 1.0,
+	},
+	{
+		"nome": "Véspera de feriado",
+		"descricao": "Mais lombadas e buracos, e a blitz para mais gente.",
+		"entregas": 6,
+		"tempo": 0.97,
+		"quantidade": {"lombada": [4, 5], "boca": [3, 5], "terra": [1, 2], "cruzamento": [2, 3], "blitz": [1, 2]},
+		"chuva": 1.0, "cet": 1.0, "blitz": 1.3,
+	},
+	{
+		"nome": "Hora do Rush",
+		"descricao": "Rua lotada, chuva mais frequente e relógio apertado.",
+		"entregas": 7,
+		"tempo": 0.95,
+		"quantidade": {"lombada": [4, 6], "boca": [4, 6], "terra": [1, 2], "cruzamento": [2, 3], "blitz": [1, 2]},
+		"chuva": 1.4, "cet": 1.0, "blitz": 1.5,
+	},
+]
+
+# --- Pagamento (R$) ---
+const PONTOS_POR_REAL := 10     # vencendo: R$ 1 a cada 10 pontos
+const REAIS_POR_ENTREGA := 8    # perdendo: só as entregas feitas pagam a taxa
+
+# --- Oficina: melhorias da moto, compradas entre as fases ---
+# por_nivel: quanto cada nível soma ao atributo (0.07 = +7%)
+const PRECOS_MELHORIA := [50, 100, 180]
+const MELHORIAS := {
+	"motor": {"nome": "Motor", "descricao": "+7% de velocidade e +10% de arrancada por nível", "por_nivel": 0.07},
+	"freio": {"nome": "Freio", "descricao": "+18% de força de freio por nível (ajuda na chuva)", "por_nivel": 0.18},
+	"tanque": {"nome": "Tanque", "descricao": "+25% de gasolina no tanque por nível", "por_nivel": 0.25},
+	"amortecedor": {"nome": "Amortecedor", "descricao": "Aguenta pousar 6° mais torto por nível sem cair", "por_nivel": 0.1},
+	"bag": {"nome": "Bag térmica", "descricao": "+12% de prazo em cada pedido por nível", "por_nivel": 0.12},
+}
 
 # --- Gasolina ---
 const GASOLINA_MAX := 100.0

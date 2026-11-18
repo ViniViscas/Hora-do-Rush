@@ -30,6 +30,8 @@ var _cet_gatilho := -1.0
 var _tempo := 0.0
 var _x_anterior := 0.0
 var _causa_voo := ""
+var _voo_de = null           # marcador da lombada/boca que lançou a moto
+var _premiados := {}         # lombadas/bocas que já deram bônus neste pedido
 var _na_ciclovia := false
 var _ajuda_equilibrio := 0
 
@@ -88,6 +90,12 @@ func iniciar(moto_ref, dificuldade: Dictionary) -> void:
 		_cet_gatilho = rng.randf_range(0.15, 0.4) * dif.tempo_fase
 
 
+## Cada lombada/boca só dá bônus uma vez por pedido (senão dava para ficar
+## indo e voltando na mesma lombada juntando pontos, que viram R$).
+func novo_pedido() -> void:
+	_premiados.clear()
+
+
 ## Chamado todo frame durante a partida. "pausado" = cliente digitando código.
 func processar(delta: float, pausado: bool) -> void:
 	for c in cruzamentos:
@@ -143,6 +151,7 @@ func _checar_lombadas(x: float, vx: float) -> void:
 				sentido = -sentido
 			moto.lancar(-(300.0 + 1.1 * vx), -sentido * rng.randf_range(1.2, 3.0) * forca)
 			_causa_voo = "lombada"
+			_voo_de = l
 			_dica_equilibrio()
 		else:
 			moto.velocity.y = -150.0
@@ -156,6 +165,7 @@ func _checar_bocas(x: float, vx: float) -> void:
 			var lado := 1.0 if rng.randf() < 0.5 else -1.0
 			moto.lancar(-470.0, lado * rng.randf_range(2.4, 3.6))
 			_causa_voo = "boca"
+			_voo_de = b
 			_dica_equilibrio()
 		else:
 			moto.velocity.x *= 0.5
@@ -170,10 +180,16 @@ func _dica_equilibrio() -> void:
 func _on_pousou(diferenca: float, tempo_ar: float, caiu: bool) -> void:
 	var causa := _causa_voo
 	_causa_voo = ""
+	var ja_valeu := _premiados.has(_voo_de)
+	if not caiu and _voo_de != null:
+		_premiados[_voo_de] = true
+	_voo_de = null
 	if caiu:
 		var pen := Config.PENALIDADE_QUEDA_LOMBADA if causa == "lombada" else Config.PENALIDADE_QUEDA_BOCA
 		var frase := "Voou e capotou!" if causa == "lombada" else "Caiu no buraco!"
 		placar.emit(-pen, 0.0, "%s -%d pts" % [frase, pen], Config.COR_VERMELHO)
+	elif ja_valeu and causa != "":
+		aviso.emit("Pousou! (essa já valeu ponto neste pedido)", Config.COR_CINZA_CLARO)
 	elif causa == "lombada":
 		var bonus := 10 + int(tempo_ar * 25.0)
 		if absf(diferenca) < 0.2:

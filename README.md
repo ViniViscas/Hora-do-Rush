@@ -25,7 +25,9 @@ O design completo está em [`docs/GDD.md`](docs/GDD.md).
 
 Os botões de toque aparecem automaticamente no celular. Para vê-los no PC, rode com o argumento `-- --toque`.
 
-Cada partida gera um mapa novo. O número do mapa aparece na tela de fim. Para jogar um mapa específico, rode com `-- --semente=N`.
+Cada bag tem uma **campanha de 5 fases** (3 a 7 entregas). Vencer uma fase libera a próxima e paga em R$, que se gasta na **oficina** com melhorias da moto. O progresso fica salvo em `user://progresso.cfg` (no Windows: `%APPDATA%\Godot\app_userdata\Hora do Rush\`); para zerar, é só apagar esse arquivo.
+
+Cada fase tem um mapa fixo dentro da campanha (o número aparece na tela de fim). Para forçar um mapa específico, rode com `-- --semente=N`.
 
 ## Estrutura
 
@@ -34,7 +36,8 @@ project.godot          configuração (1280x720, tela deitada, renderer Compatib
 scenes/main.tscn       cena principal
 scripts/
   main.gd              monta a fase e controla pedidos, tempo, gasolina e pontuação
-  game_config.gd       balanceamento (dificuldades, gasolina, pontos, obstáculos) e paleta de cores
+  game_config.gd       balanceamento (dificuldades, fases, melhorias, gasolina, pontos) e paleta de cores
+  progresso.gd         campanha salva em disco: fases liberadas, dinheiro, melhorias, recordes
   gerador_fase.gd      gera o mapa por semente: chão, endereços e obstáculos (regras de distância em FOLGAS)
   obstaculos.gd        lógica do M2: lombada, boca de lobo, terra, ciclovia, blitz, cruzamento, chuva, CET
   marcador.gd          desenho dos obstáculos na pista (e o semáforo/carro do cruzamento)
@@ -49,7 +52,7 @@ scripts/
   hud.gd               interface durante o jogo + setas para o destino
   code_popup.gd        balão do cliente com teclado numérico
   code_display.gd      números "quebradiços" do código
-  screens.gd           menu (escolha da bag) e tela de fim
+  screens.gd           menu (escolha da bag), fases, oficina e tela de fim
   touch_controls.gd    botões de toque para celular
   ui_util.gd           helpers de interface
 docs/GDD.md            documento de design
@@ -76,3 +79,5 @@ Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada
 - **M1 (núcleo):** moto, coleta → entrega, prazo com bônus de tempo, gasolina com postos aleatórios, código no portão, pontuação, 3 dificuldades (bags), suporte a toque.
 - **M2 (obstáculos):** lombada e boca de lobo com equilíbrio no ar, estrada de terra, ciclovia, cruzamento com semáforo, blitz, chuva, perseguição da CET e mapa com o dobro do tamanho.
 - **M2.5 (mapa procedural):** a rua é gerada a cada partida, com distâncias mínimas entre os obstáculos.
+- **M3 (parcial):** campanha de 5 fases em sequência por bag, com densidade de obstáculos crescente.
+- **M4 (parcial):** dinheiro por fase e oficina com 5 melhorias de 3 níveis.

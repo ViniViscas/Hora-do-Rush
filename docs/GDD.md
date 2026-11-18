@@ -37,8 +37,22 @@ Pegar pedido no restaurante → Rodar pela cidade (obstáculos, gasolina) → Ch
 ## 3. Regras centrais
 
 ### 3.1 Fase × dificuldade
-- **A fase define o número de pedidos** (ex.: fase 1 = 3 entregas, fase 2 = 5…).
-- **A dificuldade define o tempo** disponível.
+- **A fase define o número de pedidos** e quais obstáculos aparecem.
+- **A dificuldade (bag) define o tempo** disponível e a crueldade dos percalços.
+- Cada bag tem a sua **campanha de 5 fases em sequência**: vencer uma fase libera a próxima. Fases já vencidas podem ser rejogadas (para melhorar o recorde ou juntar dinheiro).
+- Cada fase tem um **mapa fixo** dentro da campanha: tentar de novo repete o mesmo mapa.
+
+| Fase | Nome | Entregas | Tempo* | O que entra |
+|---|---|---|---|---|
+| 1 | Primeiro dia | 3 | ×1,2 | Poucas lombadas, buracos e cruzamentos. **Sem** blitz, chuva ou CET |
+| 2 | Pegando o jeito | 4 | ×1,1 | Entra a **blitz** |
+| 3 | Sexta à noite | 5 | ×1,0 | Entram **chuva** e **CET** (rua igual à do M2.5) |
+| 4 | Véspera de feriado | 6 | ×0,97 | Mais lombadas, blitz parando mais gente (×1,3) |
+| 5 | Hora do Rush | 7 | ×0,95 | Rua lotada (4 a 6 lombadas e buracos), chuva ×1,4, blitz ×1,5 |
+
+\* O tempo da bag vale para 5 entregas e é proporcional ao número de entregas da fase, vezes o fator da tabela. Ex.: médio (170 s) na fase 1 = 170 × 3/5 × 1,2 ≈ 122 s.
+
+> A rua tem 14.000 px e as folgas da seção 5.1 limitam quantos obstáculos cabem (~11 a 13). Por isso as fases 4 e 5 apertam mais pelo tempo, pela chuva e pela blitz do que pela quantidade. Tudo isso fica em `Config.FASES`.
 
 ### 3.2 Tempo e bônus por entrega antecipada
 - Cada pedido tem um **prazo** (ex.: 60 s).
@@ -158,9 +172,29 @@ Todas essas distâncias ficam na tabela `FOLGAS` do gerador, para o grupo ajusta
 
 ## 6. Progressão
 
-- **Upgrades da moto:** velocidade, freio, tanque (gasolina).
-- **Upgrades da bag:** capacidade (carregar mais de um pedido ao mesmo tempo).
-- 💡 Comprados com o dinheiro/pontos ganhos nas fases, numa **tela de oficina** entre fases.
+### 6.1 Dinheiro
+- No fim de cada fase vem o **acerto do turno**:
+  - **Venceu:** R$ 1 a cada 10 pontos (inclui o bônus de tempo que sobrou).
+  - **Perdeu:** só R$ 8 por entrega feita (a taxa de entrega). Assim, perder não zera o esforço, mas vencer paga bem mais.
+- Rejogar uma fase vencida também paga, então quem travar numa fase pode voltar, juntar dinheiro e melhorar a moto.
+- Na prática (bot no médio, sem melhorias), uma fase vencida paga de ~R$ 80 (fase 1) a ~R$ 230 (fase 5).
+- Lombada e boca de lobo só dão bônus **uma vez por pedido** cada, para não dar para ficar indo e voltando juntando pontos.
+
+### 6.2 Oficina (melhorias da moto)
+Aberta pelo menu de fases ou pela tela de fim. Cada melhoria tem **3 níveis**, a **R$ 50, R$ 100 e R$ 180** (R$ 1.650 para comprar tudo; uma campanha vencida de primeira rende ~R$ 650 no médio).
+
+> Teste do bot: no **difícil** sem melhorias ele trava a partir da fase 2 ou 3; com tudo no nível 3, vence as 5. No **médio** vence as 5 até sem melhorias, que ali servem de folga para jogador humano.
+
+| Melhoria | Efeito por nível | Por que ajuda |
+|---|---|---|
+| **Motor** | +7% de velocidade máxima, +10% de arrancada | Chega antes, sobra mais prazo. Lombada em alta também lança mais longe! |
+| **Freio** | +18% de força de freio | Para no portão e na blitz sem passar do ponto; compensa a chuva |
+| **Tanque** | +25% de gasolina | Menos paradas no posto (encher do zero demora mais) |
+| **Amortecedor** | Aguenta pousar ~6° mais torto sem cair (45° → 63° no nível 3) | Perdoa erros no equilíbrio do ar |
+| **Bag térmica** | +12% de prazo em cada pedido | Mais pedidos entregues adiantados, logo mais tempo de volta |
+
+- As melhorias são **por bag**: cada campanha tem a sua moto.
+- 💡 **Upgrade da bag (capacidade):** carregar mais de um pedido ao mesmo tempo ficou para depois, porque muda o loop de pedidos.
 - **Conquistas (achievements)** por habilidade. 💡 Ideias: "Voo da lombada" (pousar 5 lombadas seguidas), "Nem vi a CET" (fugir sem ser pego), "Tanque na reserva" (terminar a fase com menos de 5% de gasolina), "Código de primeira" (10 códigos sem erro).
 
 > ❓ A lista original tem "skill achievement" e "skill" separados. "Skill" seriam **habilidades ativas** do entregador (ex.: turbo, empinar)? Falta definir.
@@ -198,6 +232,6 @@ Todas essas distâncias ficam na tabela `FOLGAS` do gerador, para o grupo ajusta
 | **M1 — Protótipo do núcleo** ✅ | Moto (aceleração, freio, pulo), uma fase, restaurante → cliente, prazo + relógio + bônus, gasolina + posto, código no portão, pontuação, HUD, game over/vitória |
 | **M2 — Obstáculos** ✅ | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET, ciclovia, mapa maior |
 | **M2.5 — Mapa procedural** ✅ | Rua gerada por semente, com regras de distância entre obstáculos |
-| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), várias fases, modos final de semana/domingueiros |
-| **M4 — Progressão** | Oficina de upgrades, conquistas, ranking local |
+| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), ~~várias fases~~ (campanha de 5 fases), modos final de semana/domingueiros |
+| **M4 — Progressão** | ~~Oficina de upgrades~~ (dinheiro + 5 melhorias), conquistas, ranking local |
 | **M5 — Arte e polimento** | Sprites finais, texturas sujas, efeitos, easter eggs, som |

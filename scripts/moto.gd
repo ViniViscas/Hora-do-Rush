@@ -13,13 +13,13 @@ const GRAVIDADE_VOO := 1350.0   # lançada por obstáculo, a moto "flutua" mais
 const TORQUE_AR := 15.0         # rad/s² aplicados com A/D quando instável
 const TURBULENCIA := 3.0        # rad/s² de balanço no ar (muda a cada voo)
 const GIRO_MAX := 9.0           # rad/s
-const LIMITE_QUEDA := 0.8       # ~45°: acima disso no pouso, a moto cai
 
 var vel_max := 520.0
 var aceleracao := 650.0
 var forca_freio := 1500.0
 var desaceleracao_livre := 220.0
 var impulso_pulo := -720.0
+var limite_queda := 0.8     # ~45°: pousar mais torto que isso derruba (o amortecedor aumenta)
 
 ## Multiplicadores ajustados pelos obstáculos (terra, ciclovia, chuva)
 var mult_vel := 1.0
@@ -174,7 +174,7 @@ func _depois_de_mover(delta: float) -> void:
 		var ang_chao := get_floor_normal().angle() + PI / 2.0
 		if _estava_no_ar and instavel:
 			var diferenca := angle_difference(ang_chao, angulo)
-			var caiu := absf(diferenca) > LIMITE_QUEDA
+			var caiu := absf(diferenca) > limite_queda
 			instavel = false
 			vel_ang = 0.0
 			if caiu:

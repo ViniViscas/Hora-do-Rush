@@ -1,6 +1,7 @@
 extends Node2D
 ## Cena principal: monta a fase, controla o fluxo de pedidos, tempo, gasolina e pontuação.
 ## Os obstáculos do M2 ficam em obstaculos.gd; o mapa é gerado por gerador_fase.gd.
+## A campanha (fases em sequência, dinheiro e melhorias) fica salva por progresso.gd.
 
 const Config := preload("res://scripts/game_config.gd")
 const Gerador := preload("res://scripts/gerador_fase.gd")
@@ -16,6 +17,7 @@ const Hud := preload("res://scripts/hud.gd")
 const Telas := preload("res://scripts/screens.gd")
 const PopupCodigo := preload("res://scripts/code_popup.gd")
 const Toque := preload("res://scripts/touch_controls.gd")
+const Progresso := preload("res://scripts/progresso.gd")
 
 const LARGURA_FASE := Gerador.LARGURA
 const PX_POR_METRO := 16.0
@@ -24,16 +26,21 @@ const VEL_PARADO := 35.0
 enum Estado { MENU, JOGANDO, CODIGO, FIM }
 enum Etapa { IR_RESTAURANTE, COLETANDO, IR_CLIENTE, ESPERANDO_CLIENTE }
 
-## Dificuldade a iniciar direto após recarregar a cena ("Jogar de novo").
+## Fase a iniciar direto após recarregar a cena (cada fase monta um mapa novo).
 static var dificuldade_pendente := ""
-## Semente do mapa a reaproveitar após recarregar ("Jogar de novo" repete o mesmo mapa).
-static var semente_pendente := 0
+static var fase_pendente := 0
 
 var estado := Estado.MENU
 var dif_id := ""
 var dif: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 var fase: Dictionary = {}   # layout gerado (ver gerador_fase.gd)
+var n_fase := 0             # índice em Config.FASES
+var def_fase: Dictionary = {}
+var prog: Dictionary = {}   # progresso da campanha da bag (ver progresso.gd)
+var meta_entregas := 0
+var gas_max := Config.GASOLINA_MAX
+var mult_prazo := 1.0
 
 var moto  # Moto
 var camera: Camera2D
@@ -68,15 +75,22 @@ var _avisou_tanque_cheio := false
 func _ready() -> void:
 	rng.randomize()
 	_configurar_input()
-	fase = Gerador.new().gerar(_escolher_semente())
+	var jogar := dificuldade_pendente
+	dificuldade_pendente = ""
+	if jogar != "":
+		dif_id = jogar
+		n_fase = fase_pendente
+		prog = Progresso.carregar(dif_id)
+		fase = Gerador.new().gerar(_escolher_semente(prog.sementes[n_fase]),
+			Config.FASES[n_fase].quantidade)
+	else:
+		fase = Gerador.new().gerar(_escolher_semente(rng.randi_range(1, 999999)))
 	_criar_fundo()
 	_criar_mundo()
 	_criar_moto()
 	_criar_ui()
-	if dificuldade_pendente != "":
-		var d := dificuldade_pendente
-		dificuldade_pendente = ""
-		_iniciar(d)
+	if jogar != "":
+		_iniciar(jogar, n_fase)
 	else:
 		telas.mostrar_menu()
 
@@ -100,14 +114,12 @@ func _configurar_input() -> void:
 			InputMap.action_add_event(acao, ev)
 
 
-## Mapa novo a cada partida, a não ser que venha de "Jogar de novo" ou de -- --semente=N.
-func _escolher_semente() -> int:
-	var s := semente_pendente
-	semente_pendente = 0
+## Cada fase da campanha tem seu mapa; -- --semente=N força um mapa específico (testes).
+func _escolher_semente(padrao: int) -> int:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--semente="):
-			s = a.substr(10).to_int()
-	return s if s > 0 else rng.randi_range(1, 999999)
+			return a.substr(10).to_int()
+	return padrao
 
 
 func _criar_fundo() -> void:
@@ -262,29 +274,48 @@ func _criar_ui() -> void:
 	add_child(Toque.new())
 	telas = Telas.new()
 	add_child(telas)
-	telas.iniciar.connect(_iniciar)
-	telas.jogar_de_novo.connect(func() -> void:
+	telas.escolher_bag.connect(func(id: String) -> void:
+		dif_id = id
+		prog = Progresso.carregar(id)
+		Progresso.salvar(id, prog)   # guarda as sementes sorteadas das fases
+		telas.mostrar_campanha(Config.DIFICULDADES[id], prog))
+	telas.jogar_fase.connect(func(i: int) -> void:
 		dificuldade_pendente = dif_id
-		semente_pendente = fase.semente
+		fase_pendente = i
 		get_tree().reload_current_scene())
+	telas.abrir_oficina.connect(func() -> void: telas.mostrar_oficina(Config.DIFICULDADES[dif_id], prog))
+	telas.comprar.connect(func(melhoria: String) -> void:
+		Progresso.comprar(dif_id, prog, melhoria)
+		telas.mostrar_oficina(Config.DIFICULDADES[dif_id], prog))
+	telas.voltar_campanha.connect(func() -> void: telas.mostrar_campanha(Config.DIFICULDADES[dif_id], prog))
 	telas.voltar_menu.connect(func() -> void: get_tree().reload_current_scene())
 
 
 # ---------------------------------------------------------------- fluxo
 
-func _iniciar(id: String) -> void:
+func _iniciar(id: String, indice_fase: int) -> void:
 	dif_id = id
-	dif = Config.DIFICULDADES[id]
+	n_fase = indice_fase
+	def_fase = Config.FASES[n_fase]
+	# A fase ajusta as chances da bag (ex.: fase 1 sem blitz, sem chuva, sem CET)
+	dif = Config.DIFICULDADES[id].duplicate()
+	dif.chance_chuva = minf(1.0, dif.chance_chuva * def_fase.chuva)
+	dif.chance_cet = minf(1.0, dif.chance_cet * def_fase.cet)
+	dif.chance_blitz = dif.chance_blitz * def_fase.blitz
+	meta_entregas = def_fase.entregas
+	if prog.is_empty():
+		prog = Progresso.carregar(id)
 	telas.limpar()
 	hud.visible = true
 	moto.cor_bag = dif.cor
 	moto.cor_bag_detalhe = dif.cor_detalhe
 	moto.painel_bag = dif.painel_bag
 	moto.controles_ativos = true
-	tempo_restante = dif.tempo_fase
+	_aplicar_melhorias()
+	tempo_restante = dif.tempo_fase * def_fase.tempo * meta_entregas / 5.0
 	pontos = 0
 	entregas = 0
-	gasolina = Config.GASOLINA_INICIAL
+	gasolina = Config.GASOLINA_INICIAL / Config.GASOLINA_MAX * gas_max
 
 	# Postos em posições aleatórias a cada partida; a vaga vazia vira outra construção.
 	var ordem := range(postos.size())
@@ -300,10 +331,21 @@ func _iniciar(id: String) -> void:
 
 	estado = Estado.JOGANDO
 	_novo_pedido()
-	var msg := "Bora! %d entregas até o fim do rush." % Config.ENTREGAS_FASE
+	var msg := "FASE %d: %s\n%d entregas até o fim do rush." % [n_fase + 1, def_fase.nome, meta_entregas]
 	if obst.chovendo:
 		msg += "\nTá chovendo: o freio tá fraco!"
 	hud.aviso(msg, Config.COR_LARANJA_CLARO)
+
+
+## Melhorias compradas na oficina (progresso.gd) mexem nos atributos da moto.
+func _aplicar_melhorias() -> void:
+	var motor := Progresso.bonus(prog, "motor")
+	moto.vel_max *= 1.0 + motor
+	moto.aceleracao *= 1.0 + motor * 10.0 / 7.0
+	moto.forca_freio *= 1.0 + Progresso.bonus(prog, "freio")
+	moto.limite_queda += Progresso.bonus(prog, "amortecedor")
+	gas_max = Config.GASOLINA_MAX * (1.0 + Progresso.bonus(prog, "tanque"))
+	mult_prazo = 1.0 + Progresso.bonus(prog, "bag")
 
 
 func _novo_pedido() -> void:
@@ -315,6 +357,7 @@ func _novo_pedido() -> void:
 	restaurante_atual = opcoes[rng.randi_range(0, mini(1, opcoes.size() - 1))]
 	casa_atual = null
 	etapa = Etapa.IR_RESTAURANTE
+	obst.novo_pedido()
 	_atualizar_destaques()
 
 
@@ -328,7 +371,7 @@ func _coletar() -> void:
 		opcoes = casas
 	casa_atual = opcoes[rng.randi_range(0, opcoes.size() - 1)]
 	var dist := absf(casa_atual.position.x - restaurante_atual.position.x)
-	prazo_total = dif.prazo_base + dist / dif.prazo_px_por_s
+	prazo_total = (dif.prazo_base + dist / dif.prazo_px_por_s) * mult_prazo
 	prazo_restante = prazo_total
 	codigo_atual = "%04d" % rng.randi_range(0, 9999)
 	etapa = Etapa.IR_CLIENTE
@@ -364,7 +407,7 @@ func _on_codigo_certo() -> void:
 	entregas += 1
 	moto.controles_ativos = true
 	estado = Estado.JOGANDO
-	if entregas >= Config.ENTREGAS_FASE:
+	if entregas >= meta_entregas:
 		_fim(true, "Bag vazia, tanque na reserva e o rush vencido.")
 	else:
 		_novo_pedido()
@@ -392,12 +435,25 @@ func _fim(vitoria: bool, mensagem: String) -> void:
 	if vitoria:
 		bonus = int(tempo_restante) * Config.PONTOS_POR_SEG_RESTANTE
 		pontos += bonus
-	var linhas := "Entregas: %d/%d     Pontos: %d" % [entregas, Config.ENTREGAS_FASE, pontos]
+
+	# Acerto do turno: vencendo, recebe pelos pontos; perdendo, só a taxa das entregas feitas.
+	var pagamento := pontos / Config.PONTOS_POR_REAL if vitoria else entregas * Config.REAIS_POR_ENTREGA
+	prog.dinheiro += pagamento
+	var recorde: bool = vitoria and pontos > prog.recordes[n_fase]
 	if vitoria:
-		linhas += "\n(inclui +%d pelo tempo que sobrou)" % bonus
-	linhas += "\nBag: %s (%s)     Mapa nº %d" % [dif.nome, dif.rotulo, fase.semente]
-	var titulo := "TURNO FECHADO!" if vitoria else "GAME OVER"
-	telas.mostrar_fim(vitoria, titulo, mensagem, linhas)
+		prog.recordes[n_fase] = maxi(prog.recordes[n_fase], pontos)
+		prog.liberada = maxi(prog.liberada, mini(n_fase + 1, Config.FASES.size() - 1))
+	Progresso.salvar(dif_id, prog)
+
+	var linhas := "Entregas: %d/%d     Pontos: %d" % [entregas, meta_entregas, pontos]
+	if vitoria:
+		linhas += "\n(inclui +%d pelo tempo que sobrou)%s" % [bonus, "   NOVO RECORDE!" if recorde else ""]
+	linhas += "\nAcerto do turno: R$ %d     Saldo: R$ %d" % [pagamento, prog.dinheiro]
+	linhas += "\nFase %d: %s     Bag: %s     Mapa nº %d" % [n_fase + 1, def_fase.nome, dif.nome, fase.semente]
+	var titulo := "GAME OVER"
+	if vitoria:
+		titulo = "CAMPANHA FECHADA!" if n_fase == Config.FASES.size() - 1 else "TURNO FECHADO!"
+	telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase)
 
 
 # ---------------------------------------------------------------- loop
@@ -435,16 +491,15 @@ func _interacoes(delta: float) -> void:
 
 	# Posto: parado dentro da área enche o tanque (~10 s do zero ao cheio)
 	for p in postos:
-		var abastecendo: bool = p.ativo and parado and _moto_em(p) and gasolina < Config.GASOLINA_MAX
+		var abastecendo: bool = p.ativo and parado and _moto_em(p) and gasolina < gas_max
 		if abastecendo:
-			gasolina = minf(Config.GASOLINA_MAX,
-				gasolina + Config.GASOLINA_MAX / Config.TEMPO_ENCHER_TANQUE * delta)
+			gasolina = minf(gas_max, gasolina + Config.GASOLINA_MAX / Config.TEMPO_ENCHER_TANQUE * delta)
 			p.texto_progresso = "Abastecendo..."
-			p.progresso = gasolina / Config.GASOLINA_MAX
+			p.progresso = gasolina / gas_max
 			_avisou_tanque_cheio = false
 		elif p.progresso >= 0.0:
 			p.progresso = -1.0
-			if gasolina >= Config.GASOLINA_MAX and not _avisou_tanque_cheio:
+			if gasolina >= gas_max and not _avisou_tanque_cheio:
 				_avisou_tanque_cheio = true
 				hud.aviso("Tanque cheio!", Config.COR_LARANJA_CLARO)
 
@@ -533,7 +588,7 @@ func _atualizar_hud() -> void:
 			"cor": Config.COR_LARANJA_CLARO,
 			"texto": "%dm" % int(absf(destino.position.x - moto.position.x) / PX_POR_METRO),
 		})
-	if gasolina / Config.GASOLINA_MAX < 0.3:
+	if gasolina / gas_max < 0.3:
 		var mais_perto = null
 		for p in postos:
 			if p.ativo and (mais_perto == null
@@ -563,8 +618,8 @@ func _atualizar_hud() -> void:
 		"tempo": tempo_restante,
 		"pontos": pontos,
 		"entregas": entregas,
-		"total": Config.ENTREGAS_FASE,
-		"gasolina": gasolina / Config.GASOLINA_MAX,
+		"total": meta_entregas,
+		"gasolina": gasolina / gas_max,
 		"texto_pedido": texto,
 		"cor_pedido": cor,
 		"alvos": alvos,
