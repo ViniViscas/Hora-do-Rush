@@ -27,6 +27,8 @@ var controles_ativos := false
 var direcao := 1            # 1 = direita, -1 = esquerda (para onde a moto aponta)
 var acelerando := 0.0       # 0..1, usado no consumo de gasolina
 var cor_bag := Config.COR_LARANJA
+var cor_bag_detalhe := Config.COR_PAPEL
+var painel_bag := Rect2()   # faixa/painel com a cor do app (vazio = sem detalhe)
 
 var instavel := false       # lançada por obstáculo, precisa equilibrar
 var caido := false
@@ -195,6 +197,8 @@ func _draw() -> void:
 	draw_rect(Rect2(-44, -98, 32, 38), cor_bag.darkened(0.45))
 	draw_rect(Rect2(-42, -96, 28, 34), cor_bag)
 	draw_rect(Rect2(-42, -84, 28, 4), cor_bag.darkened(0.3))
+	if painel_bag.has_area():
+		draw_rect(painel_bag, cor_bag_detalhe)
 
 	# Quadro e carenagem
 	draw_colored_polygon(PackedVector2Array([

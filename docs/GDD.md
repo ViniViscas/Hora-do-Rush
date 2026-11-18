@@ -75,20 +75,20 @@ Pegar pedido no restaurante → Rodar pela cidade (obstáculos, gasolina) → Ch
 
 A dificuldade é escolhida pela **bag** do entregador:
 
-| Bag | Dificuldade | Efeito 💡 |
-|---|---|---|
-| Bag laranja/vermelha (paródia de app 1) | Fácil | Prazos longos, códigos legíveis, poucos percalços |
-| Bag amarela (paródia de app 2) | Médio | Prazos padrão |
-| Bag preta/amarela (paródia de app 3) | Difícil | Prazos curtos, códigos bem quebrados, mais percalços |
+| Bag | Paródia de | Dificuldade | Efeito |
+|---|---|---|---|
+| **iFudê** (vermelha, texto branco) | iFood | Fácil | Prazos longos, códigos legíveis, poucos percalços |
+| **99 Problemas** (amarela, detalhe preto) | 99 | Médio | Prazos padrão |
+| **Kitreta** (verde-água com painel amarelo) | Keeta | Difícil | Prazos curtos, códigos bem quebrados, mais percalços |
 
-Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
+Nomes escolhidos pelo grupo. As bags usam só as **cores** dos apps reais, com desenho próprio (sem copiar logo).
 
 ### Modos especiais
 - **Final de semana:** mais entregas, menos tempo.
 - **Domingueiros (Ultra Hard):** exige desempenho quase perfeito; ruas cheias de "domingueiros" atrapalhando.
 
-> ❓ **Marcas reais:** usar nomes e logos de verdade (iFood, 99, Keeta, Zé Delivery, Uber Eats, Rappi) pode dar problema mesmo num trabalho acadêmico, principalmente se o jogo for publicado.
-> 💡 Proposta: nomes de **paródia** com as mesmas cores (ex.: "iFominha", "Noventa e Nove", "Kita", "Zé do Delivery"). A referência continua clara sem copiar logo.
+> ✅ **Marcas reais → paródia** (decidido): as bags viraram iFudê, 99 Problemas e Kitreta.
+> 💡 Easter eggs ainda em aberto: sugestões "Zé da Gelada" (Zé Delivery), "Uber Eita" (Uber Eats) e "Rapidi" (Rappi).
 
 ---
 

@@ -14,6 +14,9 @@ const COR_PAPEL := Color(0.91, 0.89, 0.85)
 const COR_AMARELO := Color(0.95, 0.76, 0.19)
 
 # --- Dificuldade escolhida pela bag ---
+# Nomes de paródia dos apps (iFood, 99 e Keeta), com as cores das bags de verdade.
+# cor / cor_texto / cor_detalhe: bag, texto do botão e detalhe (borda do botão e faixa na bag)
+# painel_bag: retângulo do detalhe desenhado na bag da moto
 # tempo_fase: segundos totais da fase
 # prazo_base / prazo_px_por_s: prazo do pedido = base + distância / px_por_s
 # bonus_mult: segundos ganhos por segundo de prazo que sobrou
@@ -23,10 +26,12 @@ const COR_AMARELO := Color(0.95, 0.76, 0.19)
 # chance_blitz: chance de ser parado passando devagar na blitz
 const DIFICULDADES := {
 	"facil": {
-		"nome": "BAG LARANJA",
+		"nome": "iFudê",
 		"rotulo": "Fácil",
-		"cor": Color(0.91, 0.44, 0.11),
-		"cor_texto": Color(0.07, 0.06, 0.06),
+		"cor": Color(0.85, 0.1, 0.14),
+		"cor_texto": Color(0.97, 0.95, 0.92),
+		"cor_detalhe": Color(0.97, 0.95, 0.92),
+		"painel_bag": Rect2(-39, -92, 22, 5),
 		"tempo_fase": 200.0,
 		"prazo_base": 15.0,
 		"prazo_px_por_s": 300.0,
@@ -40,10 +45,12 @@ const DIFICULDADES := {
 		"chance_blitz": 0.05,
 	},
 	"medio": {
-		"nome": "BAG AMARELA",
+		"nome": "99 Problemas",
 		"rotulo": "Médio",
-		"cor": Color(0.95, 0.76, 0.19),
+		"cor": Color(0.98, 0.8, 0.12),
 		"cor_texto": Color(0.07, 0.06, 0.06),
+		"cor_detalhe": Color(0.07, 0.06, 0.06),
+		"painel_bag": Rect2(-38, -93, 20, 7),
 		"tempo_fase": 170.0,
 		"prazo_base": 10.0,
 		"prazo_px_por_s": 360.0,
@@ -57,10 +64,12 @@ const DIFICULDADES := {
 		"chance_blitz": 0.08,
 	},
 	"dificil": {
-		"nome": "BAG PRETA",
+		"nome": "Kitreta",
 		"rotulo": "Difícil",
-		"cor": Color(0.1, 0.1, 0.1),
-		"cor_texto": Color(0.95, 0.76, 0.19),
+		"cor": Color(0.22, 0.76, 0.68),
+		"cor_texto": Color(0.07, 0.06, 0.06),
+		"cor_detalhe": Color(0.97, 0.9, 0.25),
+		"painel_bag": Rect2(-42, -80, 28, 18),
 		"tempo_fase": 130.0,
 		"prazo_base": 6.0,
 		"prazo_px_por_s": 420.0,

@@ -278,6 +278,8 @@ func _iniciar(id: String) -> void:
 	telas.limpar()
 	hud.visible = true
 	moto.cor_bag = dif.cor
+	moto.cor_bag_detalhe = dif.cor_detalhe
+	moto.painel_bag = dif.painel_bag
 	moto.controles_ativos = true
 	tempo_restante = dif.tempo_fase
 	pontos = 0
@@ -393,7 +395,7 @@ func _fim(vitoria: bool, mensagem: String) -> void:
 	var linhas := "Entregas: %d/%d     Pontos: %d" % [entregas, Config.ENTREGAS_FASE, pontos]
 	if vitoria:
 		linhas += "\n(inclui +%d pelo tempo que sobrou)" % bonus
-	linhas += "\nDificuldade: %s (%s)     Mapa nº %d" % [dif.nome, dif.rotulo, fase.semente]
+	linhas += "\nBag: %s (%s)     Mapa nº %d" % [dif.nome, dif.rotulo, fase.semente]
 	var titulo := "TURNO FECHADO!" if vitoria else "GAME OVER"
 	telas.mostrar_fim(vitoria, titulo, mensagem, linhas)
 

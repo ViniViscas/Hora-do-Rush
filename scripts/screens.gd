@@ -58,8 +58,7 @@ func mostrar_menu() -> void:
 		var d: Dictionary = Config.DIFICULDADES[id]
 		var b: Button = UI.botao("%s\n%s" % [d.nome, d.rotulo], d.cor, d.cor_texto, 24)
 		b.custom_minimum_size = Vector2(230, 110)
-		if id == "dificil":
-			b.add_theme_stylebox_override("normal", UI.estilo(d.cor, Config.COR_AMARELO))
+		b.add_theme_stylebox_override("normal", UI.estilo(d.cor, d.cor_detalhe))
 		b.pressed.connect(func() -> void: iniciar.emit(id))
 		linha.add_child(b)
 
