@@ -9,7 +9,10 @@ signal pousou(diferenca: float, tempo_ar: float, caiu: bool)
 const Config := preload("res://scripts/game_config.gd")
 
 const GRAVIDADE := 1800.0
-const TORQUE_AR := 9.0          # rad/s² aplicados com A/D quando instável
+const GRAVIDADE_VOO := 1350.0   # lançada por obstáculo, a moto "flutua" mais
+const TORQUE_AR := 15.0         # rad/s² aplicados com A/D quando instável
+const TURBULENCIA := 3.0        # rad/s² de balanço no ar (muda a cada voo)
+const GIRO_MAX := 9.0           # rad/s
 const LIMITE_QUEDA := 0.8       # ~45°: acima disso no pouso, a moto cai
 
 var vel_max := 520.0
@@ -43,6 +46,8 @@ var _lado_queda := 1.0
 var _giro_roda := 0.0
 var _buffer_pulo := 0.0
 var _coyote := 0.0
+var _fase_turb := 0.0
+var _freq_turb := 6.0
 
 
 func _ready() -> void:
@@ -67,6 +72,8 @@ func lancar(vel_y: float, giro: float) -> void:
 	instavel = true
 	vel_ang = giro
 	_tempo_ar = 0.0
+	_fase_turb = randf() * TAU
+	_freq_turb = randf_range(4.5, 8.0)
 
 
 ## Derruba a moto por um tempo. empurrao_x != 0 joga a moto para trás.
@@ -98,7 +105,7 @@ func parar() -> void:
 func _physics_process(delta: float) -> void:
 	var no_chao := is_on_floor()
 	if not no_chao:
-		velocity.y += GRAVIDADE * delta
+		velocity.y += (GRAVIDADE_VOO if instavel else GRAVIDADE) * delta
 	_caido_t = maxf(_caido_t - delta, 0.0)
 	_bloqueio_t = maxf(_bloqueio_t - delta, 0.0)
 	if caido and _caido_t <= 0.0:
@@ -122,8 +129,10 @@ func _physics_process(delta: float) -> void:
 		if no_chao:
 			vx = move_toward(vx, 0.0, 900.0 * delta)
 	elif instavel and not no_chao:
-		# No ar e instável: A/D giram a moto para equilibrar.
+		# No ar e instável: A/D giram a moto para equilibrar. Segurar direto passa do ponto.
 		vel_ang += eixo * TORQUE_AR * delta
+		vel_ang += sin(_tempo_ar * _freq_turb + _fase_turb) * TURBULENCIA * delta
+		vel_ang = clampf(vel_ang, -GIRO_MAX, GIRO_MAX)
 	elif freando:
 		if no_chao:
 			vx = move_toward(vx, 0.0, forca_freio * mult_freio * delta)

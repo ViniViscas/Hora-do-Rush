@@ -107,7 +107,9 @@ Nomes escolhidos pelo grupo. As bags usam só as **cores** dos apps reais, com d
 
 ### Como ficou no jogo (M2)
 - **Equilíbrio no ar:** lombada e boca de lobo lançam a moto "instável". No ar, **A / D** (ou **< >** no celular) giram a moto para equilibrar. Pousar com mais de ~45° de inclinação = **queda** (-40 pts na lombada, -30 na boca de lobo) e ~1,6 s caído.
-- **Lombada:** acima de ~200 px/s a moto voa; quanto mais rápido, mais alto e mais ela empina. Pouso limpo dá bônus que cresce com o tempo no ar (×1,5 se o pouso for quase reto). Devagar, só dá um solavanco.
+  - O giro é **sensível** (segurar a tecla direto passa do ponto: é preciso dar toques) e a moto **balança** um pouco no ar, diferente a cada voo.
+  - No ar a gravidade é menor (a moto "flutua"): ~1,3 s de voo e ~270 px de altura na lombada em velocidade máxima.
+- **Lombada:** acima de ~200 px/s a moto voa; quanto mais rápido, mais alto e mais ela gira. Normalmente empina (bico para cima), mas em 25% das vezes **embica** para a frente. Pouso limpo dá bônus que cresce com o tempo no ar (×1,5 se o pouso for quase reto). Devagar, só dá um solavanco.
 - **Boca de lobo:** rápido, a moto pula e gira para um lado aleatório; devagar, só perde velocidade.
 - **Estrada de terra:** velocidade máxima ×0,55 e aceleração ×0,6. O carro da CET também fica lento na terra.
 - **Ciclovia:** 4 trechos possíveis, cada um com 50% de chance de existir na partida (pelo menos um sempre aparece). Velocidade ×1,35.

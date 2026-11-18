@@ -138,8 +138,10 @@ func _checar_lombadas(x: float, vx: float) -> void:
 		if vx > 200.0:
 			var forca: float = vx / moto.vel_max
 			var sentido := signf(moto.velocity.x)
-			# Empina a moto (bico para cima no sentido do movimento)
-			moto.lancar(-(250.0 + 0.95 * vx), -sentido * rng.randf_range(1.2, 2.4) * forca)
+			# Quase sempre empina (bico para cima); às vezes embica para a frente.
+			if rng.randf() < 0.25:
+				sentido = -sentido
+			moto.lancar(-(300.0 + 1.1 * vx), -sentido * rng.randf_range(1.2, 3.0) * forca)
 			_causa_voo = "lombada"
 			_dica_equilibrio()
 		else:
@@ -152,7 +154,7 @@ func _checar_bocas(x: float, vx: float) -> void:
 			continue
 		if vx > 150.0:
 			var lado := 1.0 if rng.randf() < 0.5 else -1.0
-			moto.lancar(-380.0, lado * rng.randf_range(2.4, 3.6))
+			moto.lancar(-470.0, lado * rng.randf_range(2.4, 3.6))
 			_causa_voo = "boca"
 			_dica_equilibrio()
 		else:
