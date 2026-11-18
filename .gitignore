@@ -1,0 +1,14 @@
+# Godot
+.godot/
+/android/
+*.tmp
+
+# Builds exportados
+/builds/
+*.apk
+*.aab
+
+# SO
+.DS_Store
+Thumbs.db
+desktop.ini
