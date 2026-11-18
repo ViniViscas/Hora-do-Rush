@@ -25,6 +25,8 @@ O design completo está em [`docs/GDD.md`](docs/GDD.md).
 
 Os botões de toque aparecem automaticamente em telas sensíveis ao toque. Para vê-los no PC, rode com o argumento `-- --toque`.
 
+Cada partida gera um mapa novo. O número do mapa aparece na tela de fim. Para jogar um mapa específico, rode com `-- --semente=N`.
+
 ## Estrutura
 
 ```
@@ -33,7 +35,7 @@ scenes/main.tscn       cena principal
 scripts/
   main.gd              monta a fase e controla pedidos, tempo, gasolina e pontuação
   game_config.gd       balanceamento (dificuldades, gasolina, pontos, obstáculos) e paleta de cores
-  level_data.gd        layout do mapa: chão, restaurantes, casas, postos e obstáculos
+  gerador_fase.gd      gera o mapa por semente: chão, endereços e obstáculos (regras de distância em FOLGAS)
   obstaculos.gd        lógica do M2: lombada, boca de lobo, terra, ciclovia, blitz, cruzamento, chuva, CET
   marcador.gd          desenho dos obstáculos na pista (e o semáforo/carro do cruzamento)
   carro_cet.gd         carro da CET que persegue o entregador
@@ -63,3 +65,4 @@ No Godot: **Editor → Gerenciar modelos de exportação** → baixar os templat
 
 - **M1 (núcleo):** moto, coleta → entrega, prazo com bônus de tempo, gasolina com postos aleatórios, código no portão, pontuação, 3 dificuldades (bags), suporte a toque.
 - **M2 (obstáculos):** lombada e boca de lobo com equilíbrio no ar, estrada de terra, ciclovia, cruzamento com semáforo, blitz, chuva, perseguição da CET e mapa com o dobro do tamanho.
+- **M2.5 (mapa procedural):** a rua é gerada a cada partida, com distâncias mínimas entre os obstáculos.

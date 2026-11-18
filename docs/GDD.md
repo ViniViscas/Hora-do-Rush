@@ -115,7 +115,38 @@ Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
 - **Blitz:** a chance de ser parado é sorteada no meio da blitz. Devagar (até ~180 px/s) é só a chance base da dificuldade; acima disso sobe até +65%. Parado = 3 a 5 s.
 - **Chuva:** sorteada por partida (25% / 35% / 50%). Freio com 40% da força.
 - **CNH vencida → CET:** sorteada por partida (50% / 75% / 100%), dispara entre 15% e 40% do tempo da fase. O carro surge atrás da moto e persegue por 22 s (82% / 88% / 94% da velocidade da moto). Pegou = -60 pts, -8 s e 3 s parado. Fugiu = +50 pts. A perseguição pausa enquanto o cliente digita o código.
-- **Mapa:** dobrou de tamanho (14.000 px), com 5 restaurantes, 15 casas, 6 vagas de posto (3 ativas por partida), viaduto e prédios/lojas/bares/borracharias/terrenos preenchendo a rua. O layout fica em `scripts/level_data.gd`.
+- **Mapa:** dobrou de tamanho (14.000 px), com 5 restaurantes, 15 casas, 6 vagas de posto (3 ativas por partida), platôs/viadutos e prédios/lojas/bares/borracharias/terrenos preenchendo a rua. Desde o M2.5 o mapa é **gerado proceduralmente** (seção 5.1).
+
+### 5.1 Geração procedural do mapa
+Cada partida gera um mapa novo a partir de uma **semente** (número). A mesma semente sempre gera o mesmo mapa: a tela de fim mostra o "Mapa nº", e **Jogar de novo** repete o mesmo mapa. O código fica em `scripts/gerador_fase.gd`.
+
+**Ordem de montagem:** chão (2 a 4 platôs/viadutos) → obstáculos de pista → restaurantes, postos e casas → obstáculos sólidos → trechos de ciclovia.
+
+**Quantidade por mapa** (o mínimo é garantido; os extras só entram se couberem):
+
+| Lombada | Boca de lobo | Terra | Cruzamento | Blitz | Ciclovia (candidatas) | Sólidos |
+|---|---|---|---|---|---|---|
+| 3–5 | 3–5 | 1–3 | 2–3 | 1–2 | até 4 | até 9 |
+
+**Regras de distância** (borda a borda, em px; a moto anda a ~520 px/s no máximo). Servem para cada obstáculo ter **embalo antes e espaço depois**, e o impacto dele não se misturar com o de outro:
+
+| | Lombada / boca | Blitz | Cruzamento | Terra |
+|---|---|---|---|---|
+| **Lombada / boca** | 550–650 | 750 | 550 | 450 |
+| **Blitz** | 750 | 2000 | 750 | 650 |
+| **Cruzamento** | 550 | 750 | 1200 | 450 |
+| **Terra** | 450 | 650 | 450 | 1200 |
+
+Outras regras:
+- Nada perigoso nos primeiros 600 px (onde a moto nasce) nem nos últimos 300.
+- Nenhum obstáculo ou endereço em rampa. Lombada e boca ficam a 200 px de rampas (pista plana para voar e pousar).
+- Cruzamento nunca em cima de platô/viaduto.
+- Obstáculos sólidos ficam a 330 px de lombada/boca (fora do pouso mais comum) e a 300 px da blitz.
+- Endereços (restaurante, casa, posto) ficam espalhados: a rua é dividida em faixas iguais e cada endereço cai numa faixa. A numeração das casas cresce da esquerda para a direita.
+- Ciclovia e estrada de terra podem passar na frente de casas.
+
+Todas essas distâncias ficam na tabela `FOLGAS` do gerador, para o grupo ajustar.
+> 💡 Para testar um mapa específico: rodar o jogo com `-- --semente=N`.
 
 ### Percalços aleatórios (por pedido)
 - **Pedido atrasado:** o restaurante demora para liberar.
@@ -153,7 +184,7 @@ Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
 
 ## 9. Fora do escopo por enquanto
 
-- **Mapas diferentes** (vários bairros/cidades): não atacar ainda.
+- **Mapas diferentes** (vários bairros/cidades, com outro visual): não atacar ainda. O layout da rua já é procedural (seção 5.1).
 - Trilha sonora.
 
 ---
@@ -164,6 +195,7 @@ Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
 |---|---|
 | **M1 — Protótipo do núcleo** ✅ | Moto (aceleração, freio, pulo), uma fase, restaurante → cliente, prazo + relógio + bônus, gasolina + posto, código no portão, pontuação, HUD, game over/vitória |
 | **M2 — Obstáculos** ✅ | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET, ciclovia, mapa maior |
+| **M2.5 — Mapa procedural** ✅ | Rua gerada por semente, com regras de distância entre obstáculos |
 | **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), várias fases, modos final de semana/domingueiros |
 | **M4 — Progressão** | Oficina de upgrades, conquistas, ranking local |
 | **M5 — Arte e polimento** | Sprites finais, texturas sujas, efeitos, easter eggs, som |

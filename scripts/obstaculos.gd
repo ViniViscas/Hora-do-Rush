@@ -7,7 +7,7 @@ signal aviso(texto: String, cor: Color)
 signal placar(pontos: int, tempo: float, texto: String, cor: Color)
 
 const Config := preload("res://scripts/game_config.gd")
-const Nivel := preload("res://scripts/level_data.gd")
+const Gerador := preload("res://scripts/gerador_fase.gd")
 const Marcador := preload("res://scripts/marcador.gd")
 const CarroCet := preload("res://scripts/carro_cet.gd")
 
@@ -34,21 +34,21 @@ var _na_ciclovia := false
 var _ajuda_equilibrio := 0
 
 
-## Cria os desenhos na pista. Chamado depois do chão existir.
-func construir(chao_ref, rng_ref: RandomNumberGenerator) -> void:
+## Cria os desenhos na pista a partir da fase gerada. Chamado depois do chão existir.
+func construir(chao_ref, rng_ref: RandomNumberGenerator, fase: Dictionary) -> void:
 	chao = chao_ref
 	rng = rng_ref
-	for x in Nivel.LOMBADAS:
+	for x in fase.lombadas:
 		lombadas.append(_marcador("lombada", x - 46.0, x + 46.0))
-	for x in Nivel.BOCAS_DE_LOBO:
+	for x in fase.bocas:
 		bocas.append(_marcador("boca", x - 34.0, x + 34.0))
-	for t in Nivel.TERRA:
+	for t in fase.terra:
 		terras.append(_marcador("terra", t[0], t[1]))
-	for c in Nivel.CICLOVIAS:
+	for c in fase.ciclovias:
 		ciclovias.append(_marcador("ciclovia", c[0], c[1]))
-	for b in Nivel.BLITZ:
+	for b in fase.blitz:
 		blitzes.append(_marcador("blitz", b[0], b[1]))
-	for x in Nivel.CRUZAMENTOS:
+	for x in fase.cruzamentos:
 		var m = _marcador("cruzamento", x - 100.0, x + 100.0)
 		m.iniciar_cruzamento(rng.randf_range(0.5, 4.0))
 		cruzamentos.append(m)
@@ -75,7 +75,7 @@ func iniciar(moto_ref, dificuldade: Dictionary) -> void:
 	for c in ciclovias:
 		c.ativo = rng.randf() < 0.5
 		alguma = alguma or c.ativo
-	if not alguma:
+	if not alguma and not ciclovias.is_empty():
 		ciclovias[rng.randi_range(0, ciclovias.size() - 1)].ativo = true
 	for c in ciclovias:
 		c.visible = c.ativo
@@ -230,7 +230,7 @@ func _atualizar_cet(delta: float, x: float) -> void:
 		if t.contem(cet.position.x):
 			vmax *= 0.6
 	cet.vel = move_toward(cet.vel, signf(dx) * vmax, 420.0 * delta)
-	cet.position.x = clampf(cet.position.x + cet.vel * delta, 40.0, Nivel.LARGURA - 40.0)
+	cet.position.x = clampf(cet.position.x + cet.vel * delta, 40.0, Gerador.LARGURA - 40.0)
 	cet.position.y = chao.altura_em(cet.position.x)
 	var y_frente: float = chao.altura_em(cet.position.x + 40.0)
 	cet.angulo = atan2(y_frente - cet.position.y, 40.0)
@@ -251,10 +251,10 @@ func _soltar_cet(x: float) -> void:
 	_cet_gatilho = -1.0
 	var lado := -float(moto.direcao)
 	var inicio := x + lado * 1000.0
-	if inicio < 60.0 or inicio > Nivel.LARGURA - 60.0:
+	if inicio < 60.0 or inicio > Gerador.LARGURA - 60.0:
 		inicio = x - lado * 1000.0
 	cet = CarroCet.new()
-	cet.position = Vector2(clampf(inicio, 60.0, Nivel.LARGURA - 60.0), chao.altura_em(inicio))
+	cet.position = Vector2(clampf(inicio, 60.0, Gerador.LARGURA - 60.0), chao.altura_em(inicio))
 	add_child(cet)
 	cet_restante = Config.DURACAO_CET
 	aviso.emit("CNH VENCIDA! A CET tá na sua cola!", Config.COR_VERMELHO)

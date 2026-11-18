@@ -1,9 +1,9 @@
 extends Node2D
 ## Cena principal: monta a fase, controla o fluxo de pedidos, tempo, gasolina e pontuação.
-## Os obstáculos do M2 ficam em obstaculos.gd; o layout do mapa em level_data.gd.
+## Os obstáculos do M2 ficam em obstaculos.gd; o mapa é gerado por gerador_fase.gd.
 
 const Config := preload("res://scripts/game_config.gd")
-const Nivel := preload("res://scripts/level_data.gd")
+const Gerador := preload("res://scripts/gerador_fase.gd")
 const Moto := preload("res://scripts/moto.gd")
 const Chao := preload("res://scripts/ground.gd")
 const Bloco := preload("res://scripts/block.gd")
@@ -17,7 +17,7 @@ const Telas := preload("res://scripts/screens.gd")
 const PopupCodigo := preload("res://scripts/code_popup.gd")
 const Toque := preload("res://scripts/touch_controls.gd")
 
-const LARGURA_FASE := Nivel.LARGURA
+const LARGURA_FASE := Gerador.LARGURA
 const PX_POR_METRO := 16.0
 const VEL_PARADO := 35.0
 
@@ -26,11 +26,14 @@ enum Etapa { IR_RESTAURANTE, COLETANDO, IR_CLIENTE, ESPERANDO_CLIENTE }
 
 ## Dificuldade a iniciar direto após recarregar a cena ("Jogar de novo").
 static var dificuldade_pendente := ""
+## Semente do mapa a reaproveitar após recarregar ("Jogar de novo" repete o mesmo mapa).
+static var semente_pendente := 0
 
 var estado := Estado.MENU
 var dif_id := ""
 var dif: Dictionary = {}
 var rng := RandomNumberGenerator.new()
+var fase: Dictionary = {}   # layout gerado (ver gerador_fase.gd)
 
 var moto  # Moto
 var camera: Camera2D
@@ -65,6 +68,7 @@ var _avisou_tanque_cheio := false
 func _ready() -> void:
 	rng.randomize()
 	_configurar_input()
+	fase = Gerador.new().gerar(_escolher_semente())
 	_criar_fundo()
 	_criar_mundo()
 	_criar_moto()
@@ -94,6 +98,16 @@ func _configurar_input() -> void:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = tecla
 			InputMap.action_add_event(acao, ev)
+
+
+## Mapa novo a cada partida, a não ser que venha de "Jogar de novo" ou de -- --semente=N.
+func _escolher_semente() -> int:
+	var s := semente_pendente
+	semente_pendente = 0
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--semente="):
+			s = a.substr(10).to_int()
+	return s if s > 0 else rng.randi_range(1, 999999)
 
 
 func _criar_fundo() -> void:
@@ -136,27 +150,27 @@ func _criar_fundo() -> void:
 
 func _criar_mundo() -> void:
 	chao = Chao.new()
-	chao.configurar(PackedVector2Array(Nivel.CHAO))
+	chao.configurar(PackedVector2Array(fase.chao))
 
-	for r in Nivel.RESTAURANTES:
-		restaurantes.append(_criar_local("restaurante", r[0], r[1], 220.0))
-	for c in Nivel.CASAS:
-		casas.append(_criar_local("casa", c[0], c[1], 160.0))
-	for x in Nivel.POSTOS:
+	for r in fase.restaurantes:
+		restaurantes.append(_criar_local("restaurante", r[0], r[1], Gerador.LARG_LOCAL.restaurante))
+	for c in fase.casas:
+		casas.append(_criar_local("casa", c[0], c[1], Gerador.LARG_LOCAL.casa))
+	for x in fase.postos:
 		var f = _criar_fachada(x - 120.0, x + 120.0, int(x))
 		fachadas_posto.append(f)
-		postos.append(_criar_local("posto", x, "Posto", 240.0))
+		postos.append(_criar_local("posto", x, "Posto", Gerador.LARG_LOCAL.posto))
 	_preencher_rua()
 
 	# Chão depois dos prédios (postes na frente), obstáculos por cima do chão
 	add_child(chao)
 	obst = Obstaculos.new()
 	add_child(obst)
-	obst.construir(chao, rng)
+	obst.construir(chao, rng, fase)
 	obst.aviso.connect(func(t: String, c: Color) -> void: hud.aviso(t, c))
 	obst.placar.connect(_on_placar)
 
-	for o in Nivel.BLOCOS:
+	for o in fase.blocos:
 		var b := Bloco.new()
 		b.tipo = o[1]
 		b.tamanho = o[2]
@@ -189,13 +203,13 @@ func _preencher_rua() -> void:
 	var ocupados := []
 	for l in restaurantes + casas + postos:
 		ocupados.append([l.position.x - l.largura / 2.0 - 6.0, l.position.x + l.largura / 2.0 + 6.0])
-	for x in Nivel.CRUZAMENTOS:
+	for x in fase.cruzamentos:
 		ocupados.append([x - 135.0, x + 150.0])
 	ocupados.append([LARGURA_FASE - 10.0, LARGURA_FASE + 10.0])
 	ocupados.sort_custom(func(a, b) -> bool: return a[0] < b[0])
 
 	var r := RandomNumberGenerator.new()
-	r.seed = 2026   # a cidade é sempre igual
+	r.seed = fase.semente   # mesma semente, mesmas fachadas
 	var cursor := 10.0
 	for seg in ocupados:
 		var x := cursor
@@ -251,6 +265,7 @@ func _criar_ui() -> void:
 	telas.iniciar.connect(_iniciar)
 	telas.jogar_de_novo.connect(func() -> void:
 		dificuldade_pendente = dif_id
+		semente_pendente = fase.semente
 		get_tree().reload_current_scene())
 	telas.voltar_menu.connect(func() -> void: get_tree().reload_current_scene())
 
@@ -378,7 +393,7 @@ func _fim(vitoria: bool, mensagem: String) -> void:
 	var linhas := "Entregas: %d/%d     Pontos: %d" % [entregas, Config.ENTREGAS_FASE, pontos]
 	if vitoria:
 		linhas += "\n(inclui +%d pelo tempo que sobrou)" % bonus
-	linhas += "\nDificuldade: %s (%s)" % [dif.nome, dif.rotulo]
+	linhas += "\nDificuldade: %s (%s)     Mapa nº %d" % [dif.nome, dif.rotulo, fase.semente]
 	var titulo := "TURNO FECHADO!" if vitoria else "GAME OVER"
 	telas.mostrar_fim(vitoria, titulo, mensagem, linhas)
 
