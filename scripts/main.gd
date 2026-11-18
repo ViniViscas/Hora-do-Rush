@@ -1,18 +1,23 @@
 extends Node2D
 ## Cena principal: monta a fase, controla o fluxo de pedidos, tempo, gasolina e pontuação.
+## Os obstáculos do M2 ficam em obstaculos.gd; o layout do mapa em level_data.gd.
 
 const Config := preload("res://scripts/game_config.gd")
+const Nivel := preload("res://scripts/level_data.gd")
 const Moto := preload("res://scripts/moto.gd")
 const Chao := preload("res://scripts/ground.gd")
 const Bloco := preload("res://scripts/block.gd")
 const Local := preload("res://scripts/location.gd")
+const Fachada := preload("res://scripts/fachada.gd")
 const Skyline := preload("res://scripts/skyline.gd")
+const Obstaculos := preload("res://scripts/obstaculos.gd")
+const Chuva := preload("res://scripts/chuva.gd")
 const Hud := preload("res://scripts/hud.gd")
 const Telas := preload("res://scripts/screens.gd")
 const PopupCodigo := preload("res://scripts/code_popup.gd")
 const Toque := preload("res://scripts/touch_controls.gd")
 
-const LARGURA_FASE := 7200.0
+const LARGURA_FASE := Nivel.LARGURA
 const PX_POR_METRO := 16.0
 const VEL_PARADO := 35.0
 
@@ -30,9 +35,12 @@ var rng := RandomNumberGenerator.new()
 var moto  # Moto
 var camera: Camera2D
 var chao  # Chao
+var obst  # Obstaculos
+var chuva  # Chuva
 var restaurantes: Array = []
 var casas: Array = []
 var postos: Array = []
+var fachadas_posto: Array = []   # tapam a vaga quando o posto não aparece
 var camadas_fundo: Array = []   # [[Node2D, fator]]
 
 var hud  # Hud
@@ -128,31 +136,27 @@ func _criar_fundo() -> void:
 
 func _criar_mundo() -> void:
 	chao = Chao.new()
-	add_child(chao)
-	chao.configurar(PackedVector2Array([
-		Vector2(-700, 600), Vector2(1300, 600), Vector2(1500, 500), Vector2(2200, 500),
-		Vector2(2400, 600), Vector2(4200, 600), Vector2(4350, 540), Vector2(4700, 540),
-		Vector2(4850, 600), Vector2(LARGURA_FASE + 700, 600)]))
-	# Os locais ficam atrás do chão (postes na frente dos prédios)
-	move_child(chao, -1)
+	chao.configurar(PackedVector2Array(Nivel.CHAO))
 
-	for r in [[450.0, "Pizzaria Bella Nonna"], [3050.0, "Esfiha Express"], [6000.0, "Burguer da Quebrada"]]:
+	for r in Nivel.RESTAURANTES:
 		restaurantes.append(_criar_local("restaurante", r[0], r[1], 220.0))
-	var cores_casa := [Color(0.34, 0.31, 0.3), Color(0.4, 0.33, 0.28), Color(0.3, 0.3, 0.31)]
-	var i := 0
-	for c in [[850.0, "12"], [1700.0, "77"], [2650.0, "145"], [3700.0, "230"], [4520.0, "301"],
-			[5150.0, "418"], [6500.0, "512"], [6950.0, "640"]]:
-		var casa = _criar_local("casa", c[0], c[1], 160.0)  # nº da casa = nome
-		casa.cor_parede = cores_casa[i % cores_casa.size()]
-		casas.append(casa)
-		i += 1
-	for x in [1120.0, 2030.0, 4000.0, 5550.0]:
+	for c in Nivel.CASAS:
+		casas.append(_criar_local("casa", c[0], c[1], 160.0))
+	for x in Nivel.POSTOS:
+		var f = _criar_fachada(x - 120.0, x + 120.0, int(x))
+		fachadas_posto.append(f)
 		postos.append(_criar_local("posto", x, "Posto", 240.0))
-	move_child(chao, -1)
+	_preencher_rua()
 
-	for o in [[2480.0, "cone", Vector2(26, 36)], [3350.0, "cacamba", Vector2(110, 55)],
-			[5780.0, "caixote", Vector2(54, 48)], [6250.0, "caixote", Vector2(54, 48)],
-			[6730.0, "cone", Vector2(26, 36)]]:
+	# Chão depois dos prédios (postes na frente), obstáculos por cima do chão
+	add_child(chao)
+	obst = Obstaculos.new()
+	add_child(obst)
+	obst.construir(chao, rng)
+	obst.aviso.connect(func(t: String, c: Color) -> void: hud.aviso(t, c))
+	obst.placar.connect(_on_placar)
+
+	for o in Nivel.BLOCOS:
 		var b := Bloco.new()
 		b.tipo = o[1]
 		b.tamanho = o[2]
@@ -180,6 +184,42 @@ func _criar_local(tipo: String, x: float, nome: String, largura: float):
 	return l
 
 
+## Enche os espaços vazios entre os pontos de entrega com construções decorativas.
+func _preencher_rua() -> void:
+	var ocupados := []
+	for l in restaurantes + casas + postos:
+		ocupados.append([l.position.x - l.largura / 2.0 - 6.0, l.position.x + l.largura / 2.0 + 6.0])
+	for x in Nivel.CRUZAMENTOS:
+		ocupados.append([x - 135.0, x + 150.0])
+	ocupados.append([LARGURA_FASE - 10.0, LARGURA_FASE + 10.0])
+	ocupados.sort_custom(func(a, b) -> bool: return a[0] < b[0])
+
+	var r := RandomNumberGenerator.new()
+	r.seed = 2026   # a cidade é sempre igual
+	var cursor := 10.0
+	for seg in ocupados:
+		var x := cursor
+		var fim: float = seg[0]
+		while fim - x >= 80.0:
+			var w := r.randf_range(120.0, 220.0)
+			if fim - x - w < 80.0:
+				w = fim - x
+			if w > 260.0:
+				w = 200.0
+			_criar_fachada(x, x + w - 4.0, r.randi()).tipo = Fachada.TIPOS[r.randi() % Fachada.TIPOS.size()]
+			x += w
+		cursor = maxf(cursor, seg[1])
+
+
+func _criar_fachada(x0: float, x1: float, semente: int):
+	var f := Fachada.new()
+	f.largura = x1 - x0
+	f.semente = semente
+	f.position = Vector2((x0 + x1) / 2.0, maxf(chao.altura_em(x0), chao.altura_em(x1)))
+	add_child(f)
+	return f
+
+
 func _criar_moto() -> void:
 	moto = Moto.new()
 	moto.position = Vector2(200, 560)
@@ -195,6 +235,9 @@ func _criar_moto() -> void:
 
 
 func _criar_ui() -> void:
+	chuva = Chuva.new()
+	chuva.visible = false
+	add_child(chuva)
 	hud = Hud.new()
 	hud.visible = false
 	add_child(hud)
@@ -226,23 +269,33 @@ func _iniciar(id: String) -> void:
 	entregas = 0
 	gasolina = Config.GASOLINA_INICIAL
 
-	# Postos em posições aleatórias a cada partida
+	# Postos em posições aleatórias a cada partida; a vaga vazia vira outra construção.
 	var ordem := range(postos.size())
 	ordem.shuffle()
 	for j in postos.size():
 		var ativo: bool = ordem.find(j) < Config.POSTOS_ATIVOS
 		postos[j].ativo = ativo
 		postos[j].visible = ativo
+		fachadas_posto[j].visible = not ativo
+
+	obst.iniciar(moto, dif)
+	chuva.visible = obst.chovendo
 
 	estado = Estado.JOGANDO
 	_novo_pedido()
-	hud.aviso("Bora! %d entregas até o fim do rush." % Config.ENTREGAS_FASE, Config.COR_LARANJA_CLARO)
+	var msg := "Bora! %d entregas até o fim do rush." % Config.ENTREGAS_FASE
+	if obst.chovendo:
+		msg += "\nTá chovendo: o freio tá fraco!"
+	hud.aviso(msg, Config.COR_LARANJA_CLARO)
 
 
 func _novo_pedido() -> void:
+	# Sorteia entre os 2 restaurantes mais perto (sem repetir o último)
 	var anterior = restaurante_atual
 	var opcoes := restaurantes.filter(func(r) -> bool: return r != anterior)
-	restaurante_atual = opcoes[rng.randi_range(0, opcoes.size() - 1)]
+	var x: float = moto.position.x
+	opcoes.sort_custom(func(a, b) -> bool: return absf(a.position.x - x) < absf(b.position.x - x))
+	restaurante_atual = opcoes[rng.randi_range(0, mini(1, opcoes.size() - 1))]
 	casa_atual = null
 	etapa = Etapa.IR_RESTAURANTE
 	_atualizar_destaques()
@@ -250,11 +303,13 @@ func _novo_pedido() -> void:
 
 func _coletar() -> void:
 	restaurante_atual.progresso = -1.0
-	var longe := casas.filter(func(c) -> bool:
-		return absf(c.position.x - restaurante_atual.position.x) > 1500.0)
-	if longe.is_empty():
-		longe = casas
-	casa_atual = longe[rng.randi_range(0, longe.size() - 1)]
+	# Casa nem perto demais nem do outro lado do mapa
+	var opcoes := casas.filter(func(c) -> bool:
+		var d := absf(c.position.x - restaurante_atual.position.x)
+		return d > 1500.0 and d < 5000.0)
+	if opcoes.is_empty():
+		opcoes = casas
+	casa_atual = opcoes[rng.randi_range(0, opcoes.size() - 1)]
 	var dist := absf(casa_atual.position.x - restaurante_atual.position.x)
 	prazo_total = dif.prazo_base + dist / dif.prazo_px_por_s
 	prazo_restante = prazo_total
@@ -303,6 +358,15 @@ func _on_codigo_errado() -> void:
 	hud.aviso("Código errado! -%d pts" % Config.PENALIDADE_CODIGO, Config.COR_VERMELHO)
 
 
+## Pontos/tempo vindos dos obstáculos (quedas, multas, bônus de pouso...).
+func _on_placar(delta_pontos: int, delta_tempo: float, texto: String, cor: Color) -> void:
+	if estado != Estado.JOGANDO and estado != Estado.CODIGO:
+		return
+	pontos = maxi(0, pontos + delta_pontos)
+	tempo_restante += delta_tempo
+	hud.aviso(texto, cor)
+
+
 func _fim(vitoria: bool, mensagem: String) -> void:
 	estado = Estado.FIM
 	moto.controles_ativos = false
@@ -326,6 +390,7 @@ func _process(delta: float) -> void:
 		tempo_restante -= delta
 		if etapa == Etapa.IR_CLIENTE or etapa == Etapa.ESPERANDO_CLIENTE:
 			prazo_restante -= delta
+		obst.processar(delta, estado == Estado.CODIGO)
 		_consumir_gasolina(delta)
 		if gasolina <= 0.0:
 			gasolina = 0.0
@@ -349,7 +414,7 @@ func _consumir_gasolina(delta: float) -> void:
 
 
 func _interacoes(delta: float) -> void:
-	var parado: bool = absf(moto.velocity.x) < VEL_PARADO and moto.is_on_floor()
+	var parado: bool = absf(moto.velocity.x) < VEL_PARADO and moto.is_on_floor() and not moto.caido
 
 	# Posto: parado dentro da área enche o tanque (~10 s do zero ao cheio)
 	for p in postos:
@@ -463,6 +528,19 @@ func _atualizar_hud() -> void:
 				"cor": Config.COR_VERMELHO,
 				"texto": "POSTO %dm" % int(absf(mais_perto.position.x - moto.position.x) / PX_POR_METRO),
 			})
+	if obst.cet:
+		alvos.append({"pos": obst.cet.position + Vector2(0, -40), "cor": Config.COR_VERMELHO, "texto": "CET"})
+
+	# Alerta fixo (some sozinho quando a situação acaba)
+	var alerta := ""
+	if moto.instavel:
+		alerta = "EQUILIBRA!   < A        D >"
+	elif moto.caido:
+		alerta = "Levantando a moto..."
+	elif moto.bloqueada():
+		alerta = "Parado..."
+	elif obst.cet:
+		alerta = "CET NA COLA! Aguenta %ds" % ceili(obst.cet_restante)
 
 	hud.atualizar({
 		"tempo": tempo_restante,
@@ -473,6 +551,7 @@ func _atualizar_hud() -> void:
 		"texto_pedido": texto,
 		"cor_pedido": cor,
 		"alvos": alvos,
+		"alerta": alerta,
 	})
 
 

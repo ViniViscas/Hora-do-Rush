@@ -20,6 +20,7 @@ O design completo está em [`docs/GDD.md`](docs/GDD.md).
 | Pilotar | `A` / `D` ou setas | botões `<` `>` |
 | Freio | `S`, `↓` ou `Shift` | botão FREIO |
 | Pulo | `Espaço`, `W` ou `↑` | botão PULO |
+| Equilibrar no ar (após lombada / boca de lobo) | `A` / `D` | botões `<` `>` |
 | Código no portão | teclas numéricas | teclado na tela |
 
 Os botões de toque aparecem automaticamente em telas sensíveis ao toque. Para vê-los no PC, rode com o argumento `-- --toque`.
@@ -31,7 +32,13 @@ project.godot          configuração (1280x720, tela deitada, renderer Compatib
 scenes/main.tscn       cena principal
 scripts/
   main.gd              monta a fase e controla pedidos, tempo, gasolina e pontuação
-  game_config.gd       balanceamento (dificuldades, gasolina, pontos) e paleta de cores
+  game_config.gd       balanceamento (dificuldades, gasolina, pontos, obstáculos) e paleta de cores
+  level_data.gd        layout do mapa: chão, restaurantes, casas, postos e obstáculos
+  obstaculos.gd        lógica do M2: lombada, boca de lobo, terra, ciclovia, blitz, cruzamento, chuva, CET
+  marcador.gd          desenho dos obstáculos na pista (e o semáforo/carro do cruzamento)
+  carro_cet.gd         carro da CET que persegue o entregador
+  chuva.gd             efeito de chuva
+  fachada.gd           construções decorativas (sobrados, lojas, bares, prédios...)
   moto.gd              física e desenho da moto
   ground.gd            chão com rampas, calçada e postes
   block.gd             obstáculos sólidos (caçamba, caixote, cone)
@@ -54,4 +61,5 @@ No Godot: **Editor → Gerenciar modelos de exportação** → baixar os templat
 
 ## Status
 
-Protótipo do núcleo (M1 do GDD): moto, uma fase, coleta → entrega, prazo com bônus de tempo, gasolina com postos aleatórios, código no portão, pontuação, 3 dificuldades (bags), suporte a toque.
+- **M1 (núcleo):** moto, coleta → entrega, prazo com bônus de tempo, gasolina com postos aleatórios, código no portão, pontuação, 3 dificuldades (bags), suporte a toque.
+- **M2 (obstáculos):** lombada e boca de lobo com equilíbrio no ar, estrada de terra, ciclovia, cruzamento com semáforo, blitz, chuva, perseguição da CET e mapa com o dobro do tamanho.

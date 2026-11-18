@@ -43,7 +43,7 @@ Pegar pedido no restaurante → Rodar pela cidade (obstáculos, gasolina) → Ch
 ### 3.2 Tempo e bônus por entrega antecipada
 - Cada pedido tem um **prazo** (ex.: 60 s).
 - Entregar antes do prazo **devolve tempo ao relógio da fase**.
-- 💡 Fórmula proposta: `bônus = segundos que sobraram × multiplicador` (protótipo: ×3 no fácil, ×2 no médio, ×1,5 no difícil).
+- 💡 Fórmula proposta: `bônus = segundos que sobraram × multiplicador` (protótipo: ×2,5 no fácil, ×2 no médio, ×1,5 no difícil).
   Exemplo da ideia original: prazo de 60 s, entrega em 50 s → sobraram 10 s → **+30 s**.
 - 💡 Pedido entregue **depois** do prazo: vale menos pontos (pedido atrasado), mas não tira tempo.
 
@@ -105,6 +105,18 @@ Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
 | **Estrada de terra** | Trecho que **desacelera** a moto | Custo de tempo |
 | **Ciclovia (RNG)** | **Chance aleatória** de aparecer uma ciclovia que **corta caminho** | Atalho de sorte |
 
+### Como ficou no jogo (M2)
+- **Equilíbrio no ar:** lombada e boca de lobo lançam a moto "instável". No ar, **A / D** (ou **< >** no celular) giram a moto para equilibrar. Pousar com mais de ~45° de inclinação = **queda** (-40 pts na lombada, -30 na boca de lobo) e ~1,6 s caído.
+- **Lombada:** acima de ~200 px/s a moto voa; quanto mais rápido, mais alto e mais ela empina. Pouso limpo dá bônus que cresce com o tempo no ar (×1,5 se o pouso for quase reto). Devagar, só dá um solavanco.
+- **Boca de lobo:** rápido, a moto pula e gira para um lado aleatório; devagar, só perde velocidade.
+- **Estrada de terra:** velocidade máxima ×0,55 e aceleração ×0,6. O carro da CET também fica lento na terra.
+- **Ciclovia:** 4 trechos possíveis, cada um com 50% de chance de existir na partida (pelo menos um sempre aparece). Velocidade ×1,35.
+- **Cruzamento:** semáforo verde (2,6 s), amarelo piscando + faróis no fundo da rua (1 s), carro atravessando (1,4 s). Ser pego pelo carro = -50 pts, moto derrubada e empurrada para trás.
+- **Blitz:** a chance de ser parado é sorteada no meio da blitz. Devagar (até ~180 px/s) é só a chance base da dificuldade; acima disso sobe até +65%. Parado = 3 a 5 s.
+- **Chuva:** sorteada por partida (25% / 35% / 50%). Freio com 40% da força.
+- **CNH vencida → CET:** sorteada por partida (50% / 75% / 100%), dispara entre 15% e 40% do tempo da fase. O carro surge atrás da moto e persegue por 22 s (82% / 88% / 94% da velocidade da moto). Pegou = -60 pts, -8 s e 3 s parado. Fugiu = +50 pts. A perseguição pausa enquanto o cliente digita o código.
+- **Mapa:** dobrou de tamanho (14.000 px), com 5 restaurantes, 15 casas, 6 vagas de posto (3 ativas por partida), viaduto e prédios/lojas/bares/borracharias/terrenos preenchendo a rua. O layout fica em `scripts/level_data.gd`.
+
 ### Percalços aleatórios (por pedido)
 - **Pedido atrasado:** o restaurante demora para liberar.
 - **Cliente demora no portão:** espera aleatória na entrega.
@@ -134,6 +146,7 @@ Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
 
 - **Paleta:** laranja (destaques, UI, a bag), cinzas (asfalto, prédios), preto (silhuetas, contornos), vermelho (perigo, CET, alertas).
 - Estilo *gritty*: céu poluído de fim de tarde, poste piscando, pichação, poças.
+- 💡 Texturas "sujas" (manchas, reboco caído, tijolo aparente, lixo na calçada, fios nos postes): **adiado** a pedido do grupo, entra no M5.
 - **Trilha sonora:** fica para depois.
 
 ---
@@ -149,8 +162,8 @@ Referências originais da equipe: iFood (fácil), 99 (médio), Keeta (difícil).
 
 | Etapa | Conteúdo |
 |---|---|
-| **M1 — Protótipo do núcleo** | Moto (aceleração, freio, pulo), uma fase, restaurante → cliente, prazo + relógio + bônus, gasolina + posto, código no portão, pontuação, HUD, game over/vitória |
-| **M2 — Obstáculos** | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET |
-| **M3 — Estrutura de jogo** | Menu, escolha da bag (dificuldade), várias fases, modos final de semana/domingueiros |
+| **M1 — Protótipo do núcleo** ✅ | Moto (aceleração, freio, pulo), uma fase, restaurante → cliente, prazo + relógio + bônus, gasolina + posto, código no portão, pontuação, HUD, game over/vitória |
+| **M2 — Obstáculos** ✅ | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET, ciclovia, mapa maior |
+| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), várias fases, modos final de semana/domingueiros |
 | **M4 — Progressão** | Oficina de upgrades, conquistas, ranking local |
-| **M5 — Arte e polimento** | Sprites finais, efeitos, easter eggs, som |
+| **M5 — Arte e polimento** | Sprites finais, texturas sujas, efeitos, easter eggs, som |

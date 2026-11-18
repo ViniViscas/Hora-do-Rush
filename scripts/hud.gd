@@ -11,6 +11,7 @@ var lbl_entregas: Label
 var barra_gas: ProgressBar
 var estilo_gas: StyleBoxFlat
 var lbl_toast: Label
+var lbl_alerta: Label
 var seta: Control
 
 var _alvos: Array = []   # [{pos: Vector2, cor: Color, texto: String}]
@@ -89,6 +90,14 @@ func _ready() -> void:
 	lbl_toast.modulate.a = 0.0
 	raiz.add_child(lbl_toast)
 
+	# Alerta fixo (equilibrar, CET, blitz...)
+	lbl_alerta = UI.label("", 34, Config.COR_VERMELHO, 9)
+	lbl_alerta.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lbl_alerta.offset_top = 210
+	lbl_alerta.offset_bottom = 260
+	lbl_alerta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	raiz.add_child(lbl_alerta)
+
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -111,6 +120,10 @@ func atualizar(dados: Dictionary) -> void:
 	else:
 		estilo_gas.bg_color = Config.COR_LARANJA
 		barra_gas.modulate.a = 1.0
+
+	var alerta: String = dados.get("alerta", "")
+	lbl_alerta.text = alerta
+	lbl_alerta.modulate.a = 0.6 + 0.4 * absf(sin(_t * 8.0)) if alerta != "" else 1.0
 
 	_alvos = dados.alvos
 	seta.queue_redraw()

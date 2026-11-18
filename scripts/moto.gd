@@ -1,9 +1,16 @@
 extends CharacterBody2D
-## A moto do entregador: aceleração, freio, pulo e o desenho (sem sprites por enquanto).
+## A moto do entregador: aceleração, freio, pulo, equilíbrio no ar e queda.
+##
+## Quando a moto é lançada por um obstáculo (lombada, boca de lobo), ela fica "instável":
+## no ar, A/D (ou < >) giram a moto em vez de acelerar. Pousar muito torta = queda.
+
+signal pousou(diferenca: float, tempo_ar: float, caiu: bool)
 
 const Config := preload("res://scripts/game_config.gd")
 
 const GRAVIDADE := 1800.0
+const TORQUE_AR := 9.0          # rad/s² aplicados com A/D quando instável
+const LIMITE_QUEDA := 0.8       # ~45°: acima disso no pouso, a moto cai
 
 var vel_max := 520.0
 var aceleracao := 650.0
@@ -11,13 +18,27 @@ var forca_freio := 1500.0
 var desaceleracao_livre := 220.0
 var impulso_pulo := -720.0
 
+## Multiplicadores ajustados pelos obstáculos (terra, ciclovia, chuva)
+var mult_vel := 1.0
+var mult_acel := 1.0
+var mult_freio := 1.0
+
 var controles_ativos := false
 var direcao := 1            # 1 = direita, -1 = esquerda (para onde a moto aponta)
 var acelerando := 0.0       # 0..1, usado no consumo de gasolina
 var cor_bag := Config.COR_LARANJA
 
+var instavel := false       # lançada por obstáculo, precisa equilibrar
+var caido := false
+var angulo := 0.0           # inclinação atual da moto (rad)
+var vel_ang := 0.0
+
+var _tempo_ar := 0.0
+var _estava_no_ar := false
+var _caido_t := 0.0
+var _bloqueio_t := 0.0
+var _lado_queda := 1.0
 var _giro_roda := 0.0
-var _inclinacao := 0.0
 var _buffer_pulo := 0.0
 var _coyote := 0.0
 
@@ -36,48 +57,35 @@ func _ready() -> void:
 	add_child(forma)
 
 
-func _physics_process(delta: float) -> void:
-	var eixo := 0.0
-	var freando := false
-	if controles_ativos:
-		eixo = Input.get_axis("esquerda", "direita")
-		freando = Input.is_action_pressed("freio")
-		if Input.is_action_just_pressed("pulo"):
-			_buffer_pulo = 0.12
-	_buffer_pulo = maxf(_buffer_pulo - delta, 0.0)
+## Joga a moto para cima e a deixa instável (precisa equilibrar no ar).
+func lancar(vel_y: float, giro: float) -> void:
+	if caido:
+		return
+	velocity.y = vel_y
+	instavel = true
+	vel_ang = giro
+	_tempo_ar = 0.0
 
-	var no_chao := is_on_floor()
-	if no_chao:
-		_coyote = 0.1
-	else:
-		_coyote = maxf(_coyote - delta, 0.0)
-		velocity.y += GRAVIDADE * delta
 
-	var fator_ar := 1.0 if no_chao else 0.45
-	var vx := velocity.x
-	acelerando = 0.0
-	if freando:
-		if no_chao:
-			vx = move_toward(vx, 0.0, forca_freio * delta)
-	elif eixo != 0.0:
-		if absf(vx) > 20.0 and signf(eixo) != signf(vx):
-			# Apertar para o lado contrário também freia.
-			vx = move_toward(vx, 0.0, forca_freio * 0.8 * delta * fator_ar)
-		else:
-			vx = move_toward(vx, eixo * vel_max, aceleracao * delta * fator_ar)
-			acelerando = absf(eixo)
-			direcao = 1 if eixo > 0.0 else -1
-	elif no_chao:
-		vx = move_toward(vx, 0.0, desaceleracao_livre * delta)
-	velocity.x = vx
+## Derruba a moto por um tempo. empurrao_x != 0 joga a moto para trás.
+func derrubar(tempo: float, empurrao_x: float = 0.0) -> void:
+	caido = true
+	instavel = false
+	vel_ang = 0.0
+	_caido_t = tempo
+	_lado_queda = -1.0 if angulo < 0.0 else 1.0
+	if empurrao_x != 0.0:
+		velocity.x = empurrao_x
+		velocity.y = -260.0
 
-	if _buffer_pulo > 0.0 and _coyote > 0.0:
-		velocity.y = impulso_pulo
-		_buffer_pulo = 0.0
-		_coyote = 0.0
 
-	move_and_slide()
-	_atualizar_visual(delta)
+## Obriga a moto a ficar parada (blitz, multa) por um tempo.
+func segurar(tempo: float) -> void:
+	_bloqueio_t = maxf(_bloqueio_t, tempo)
+
+
+func bloqueada() -> bool:
+	return _bloqueio_t > 0.0
 
 
 func parar() -> void:
@@ -85,19 +93,100 @@ func parar() -> void:
 	acelerando = 0.0
 
 
-func _atualizar_visual(delta: float) -> void:
-	var alvo := 0.0
-	if is_on_floor():
-		alvo = get_floor_normal().angle() + PI / 2.0
+func _physics_process(delta: float) -> void:
+	var no_chao := is_on_floor()
+	if not no_chao:
+		velocity.y += GRAVIDADE * delta
+	_caido_t = maxf(_caido_t - delta, 0.0)
+	_bloqueio_t = maxf(_bloqueio_t - delta, 0.0)
+	if caido and _caido_t <= 0.0:
+		caido = false
+
+	var pode_pilotar := controles_ativos and not caido and _bloqueio_t <= 0.0
+	var eixo := 0.0
+	var freando := _bloqueio_t > 0.0
+	if pode_pilotar:
+		eixo = Input.get_axis("esquerda", "direita")
+		freando = Input.is_action_pressed("freio")
+		if Input.is_action_just_pressed("pulo"):
+			_buffer_pulo = 0.12
+	_buffer_pulo = maxf(_buffer_pulo - delta, 0.0)
+	_coyote = 0.1 if no_chao else maxf(_coyote - delta, 0.0)
+
+	var limite := vel_max * mult_vel
+	var vx := velocity.x
+	acelerando = 0.0
+	if caido:
+		if no_chao:
+			vx = move_toward(vx, 0.0, 900.0 * delta)
+	elif instavel and not no_chao:
+		# No ar e instável: A/D giram a moto para equilibrar.
+		vel_ang += eixo * TORQUE_AR * delta
+	elif freando:
+		if no_chao:
+			vx = move_toward(vx, 0.0, forca_freio * mult_freio * delta)
+	elif eixo != 0.0:
+		var fator_ar := 1.0 if no_chao else 0.45
+		if absf(vx) > 20.0 and signf(eixo) != signf(vx):
+			# Apertar para o lado contrário também freia.
+			vx = move_toward(vx, 0.0, forca_freio * mult_freio * 0.8 * delta * fator_ar)
+		else:
+			vx = move_toward(vx, eixo * limite, aceleracao * mult_acel * delta * fator_ar)
+			acelerando = absf(eixo)
+			direcao = 1 if eixo > 0.0 else -1
+	elif no_chao:
+		vx = move_toward(vx, 0.0, desaceleracao_livre * (0.4 + 0.6 * mult_freio) * delta)
+	# Entrou num trecho mais lento (terra) acima do limite: perde velocidade.
+	if no_chao and absf(vx) > limite:
+		vx = move_toward(vx, signf(vx) * limite, 900.0 * delta)
+	velocity.x = vx
+
+	if pode_pilotar and _buffer_pulo > 0.0 and _coyote > 0.0:
+		velocity.y = impulso_pulo
+		_buffer_pulo = 0.0
+		_coyote = 0.0
+
+	move_and_slide()
+	_depois_de_mover(delta)
+
+
+func _depois_de_mover(delta: float) -> void:
+	var no_chao := is_on_floor()
+	if not no_chao:
+		_tempo_ar += delta
+		if instavel:
+			angulo += vel_ang * delta
+		elif not caido:
+			var alvo := clampf(velocity.y / 1500.0, -0.35, 0.35) * direcao
+			angulo = lerp_angle(angulo, alvo, minf(12.0 * delta, 1.0))
 	else:
-		alvo = clampf(velocity.y / 1500.0, -0.35, 0.35) * direcao
-	_inclinacao = lerp_angle(_inclinacao, alvo, minf(12.0 * delta, 1.0))
+		var ang_chao := get_floor_normal().angle() + PI / 2.0
+		if _estava_no_ar and instavel:
+			var diferenca := angle_difference(ang_chao, angulo)
+			var caiu := absf(diferenca) > LIMITE_QUEDA
+			instavel = false
+			vel_ang = 0.0
+			if caiu:
+				derrubar(1.6)
+			pousou.emit(diferenca, _tempo_ar, caiu)
+		var alvo_chao := ang_chao + (_lado_queda * 1.35 if caido else 0.0)
+		angulo = lerp_angle(angulo, alvo_chao, minf(12.0 * delta, 1.0))
+		_tempo_ar = 0.0
+	_estava_no_ar = not no_chao
 	_giro_roda += velocity.x * delta / 17.0
 	queue_redraw()
 
 
 func _draw() -> void:
-	draw_set_transform(Vector2.ZERO, _inclinacao, Vector2(direcao, 1))
+	# Caída, a moto gira em volta da base: sobe o desenho para não afundar no chão.
+	var deslocamento := Vector2.ZERO
+	if caido:
+		var mais_baixo := 0.0
+		for canto in [Vector2(-44, -100), Vector2(40, -100), Vector2(40, 0), Vector2(-44, 0)]:
+			var p: Vector2 = (canto * Vector2(direcao, 1)).rotated(angulo)
+			mais_baixo = maxf(mais_baixo, p.y)
+		deslocamento.y = -mais_baixo
+	draw_set_transform(deslocamento, angulo, Vector2(direcao, 1))
 	var preto := Config.COR_PRETO
 	var cinza := Config.COR_CINZA
 	var cinza_claro := Config.COR_CINZA_CLARO
