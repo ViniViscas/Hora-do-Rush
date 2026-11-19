@@ -30,17 +30,28 @@
 
 **Aliada:** a **Tati**, mecânica de uma oficina de bairro, conserta a moto em troca do pagamento das entregas. O dinheiro de cada turno vai para a oficina dela (as melhorias) e para o sonho da casa.
 
+**Capítulos:** cada bag é um capítulo. Quanto mais exigente o app, melhor ele paga, mas os prazos apertam e o estresse cresce (tema: o custo humano da pressa nos apps de entrega).
+
+| Capítulo | Bag | Objetivo | Abertura | Final |
+|---|---|---|---|---|
+| 1. A casa | iFudê | Entrada da casa própria | O quartinho → a moto não liga → a oficina da Tati | A chave da casa nova |
+| 2. A reforma | 99 Problemas | Reformar a casa | "Casa própria, problema próprio" (goteira, cimento) | Churrasco na laje, mas o celular não para |
+| 3. A oficina | Kitreta | Salvar a oficina da Tati | "A oficina vai fechar" | Oficina reformada: "Tati & Felipe", sócios |
+
+- O capítulo seguinte só libera ao fechar o anterior (`Config.CAPITULOS_EM_ORDEM`).
+- No capítulo 3, antes da fase 4, entra a cena **"O quase"**: Felipe quase atropelado na madrugada, e a Tati manda ele parar.
+
 **Como aparece no jogo** (`src/historia.gd`, `src/cutscene.gd`, imagens em `assets/img/cutscenes/`):
 
 | Momento | Cena |
 |---|---|
-| Primeira vez que se escolhe uma bag (rever: botão HISTÓRIA) | Introdução: o quartinho → a moto não liga → a oficina da Tati |
-| Antes de cada fase, na primeira vez | Cartão: Primeiro dia, Pegando o jeito, Sexta à noite, Véspera de feriado, Hora do Rush |
-| Ao fechar a fase 5 | Final: Felipe com a chave da casa nova, a Tati encostada na moto |
+| Primeira vez que se escolhe a bag (rever: botão HISTÓRIA) | Abertura do capítulo |
+| Antes de cada fase, na primeira vez | Cartão da fase, com o texto do capítulo (as cinco imagens são as mesmas nos três capítulos) |
+| Ao fechar a fase 5 | Final do capítulo; a tela de fim usa a mesma imagem de fundo |
 | Derrota sem gasolina / por tempo | A imagem da cena vira o fundo da tela de Game Over, com uma frase de fechamento |
 
 - As imagens das cutscenes e o fundo da oficina foram gerados com IA (Google Gemini), declarados no README.
-- ⚠️ Falta a imagem da cena **Hora do Rush** (`assets/img/cutscenes/08_hora_do_rush.jpg`). Enquanto ela não existe, o cartão da fase 5 aparece com fundo escuro.
+- O cartão da fase 5 (**Hora do Rush**) tem uma imagem por capítulo, com a bag na cor do app (`08_hora_do_rush_facil/medio/dificil.jpg`). Os outros cartões usam a mesma imagem nos três capítulos.
 
 ---
 

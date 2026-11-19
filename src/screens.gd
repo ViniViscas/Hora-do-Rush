@@ -17,6 +17,7 @@ const Config := preload("res://src/game_config.gd")
 const UI := preload("res://src/ui_util.gd")
 const TelaOficina := preload("res://src/tela_oficina.gd")
 const Cutscene := preload("res://src/cutscene.gd")
+const Historia := preload("res://src/historia.gd")
 
 var _atual: Control
 
@@ -62,7 +63,8 @@ func _base(opacidade: float, imagem: String = "") -> VBoxContainer:
 	return caixa
 
 
-func mostrar_menu() -> void:
+## bloqueadas: bags cujo capítulo ainda não foi liberado (o anterior não foi fechado).
+func mostrar_menu(bloqueadas: Array = []) -> void:
 	var caixa := _base(0.72)
 	var titulo := UI.label("HORA DO RUSH", 88, Config.COR_LARANJA, 14)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -71,7 +73,7 @@ func mostrar_menu() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(sub)
 
-	var escolha := UI.label("ESCOLHA SUA BAG", 26, Config.COR_PAPEL)
+	var escolha := UI.label("ESCOLHA O CAPÍTULO", 26, Config.COR_PAPEL)
 	escolha.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(escolha)
 
@@ -81,11 +83,25 @@ func mostrar_menu() -> void:
 	caixa.add_child(linha)
 	for id in ["facil", "medio", "dificil"]:
 		var d: Dictionary = Config.DIFICULDADES[id]
+		var bloqueada := bloqueadas.has(id)
+		var coluna := VBoxContainer.new()
+		coluna.add_theme_constant_override("separation", 8)
+		linha.add_child(coluna)
 		var b: Button = UI.botao("%s\n%s" % [d.nome, d.rotulo], d.cor, d.cor_texto, 24)
-		b.custom_minimum_size = Vector2(230, 110)
+		b.custom_minimum_size = Vector2(250, 110)
 		b.add_theme_stylebox_override("normal", UI.estilo(d.cor, d.cor_detalhe))
+		b.disabled = bloqueada
+		b.add_theme_stylebox_override("disabled", UI.estilo(Config.COR_CINZA_ESCURO))
+		b.add_theme_color_override("font_disabled_color", Config.COR_CINZA_CLARO)
 		b.pressed.connect(func() -> void: escolher_bag.emit(id))
-		linha.add_child(b)
+		coluna.add_child(b)
+		var texto: String = Historia.CAPITULOS[id].titulo
+		if bloqueada:
+			var anterior := Historia.capitulo_anterior(id)
+			texto = "FECHE O %s" % Historia.CAPITULOS[anterior].titulo.split(":")[0]
+		var cap := UI.label(texto, 13, Config.COR_CINZA_CLARO if bloqueada else Config.COR_PAPEL, 4)
+		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		coluna.add_child(cap)
 
 	var ajuda := UI.label("PC: A/D ou setas = pilotar   S/Shift = freio   Espaço/W = pulo   Números = código   M = som\n"
 		+ "Celular: botões na tela", 15, Config.COR_CINZA_CLARO, 4)

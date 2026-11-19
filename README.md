@@ -71,10 +71,18 @@ Os controles também aparecem na tela inicial do jogo. Os botões de toque apare
 
 **Felipe**, motoboy da periferia de São Paulo, quer mudar de vida: virar o melhor entregador da cidade e juntar dinheiro para comprar a própria casa. A **Tati**, mecânica de uma oficina de bairro, conserta a moto velha dele em troca do pagamento das entregas e investe cada real que sobra na máquina.
 
-A história aparece no jogo em **cutscenes**:
-- **introdução**, na primeira vez que se escolhe uma bag (dá para rever no botão HISTÓRIA da tela de fases);
-- **cartão antes de cada fase**, na primeira vez que ela é jogada;
-- **final** ao fechar a fase 5;
+Cada bag é um **capítulo** da história, com prazos cada vez mais apertados e mais estresse:
+
+| Capítulo | Bag | Objetivo do Felipe |
+|---|---|---|
+| 1. A casa | iFudê (fácil) | Juntar a entrada da casa própria |
+| 2. A reforma | 99 Problemas (médio) | Reformar a casa e subir a laje |
+| 3. A oficina | Kitreta (difícil) | Salvar a oficina da Tati, que vai fechar |
+
+Fechar a fase 5 de um capítulo libera o seguinte. A história aparece em **cutscenes**:
+- **abertura do capítulo**, na primeira vez que se escolhe a bag (dá para rever no botão HISTÓRIA da tela de fases);
+- **cartão antes de cada fase**, na primeira vez que ela é jogada, com texto próprio de cada capítulo;
+- **final do capítulo** ao fechar a fase 5;
 - **imagens nas telas de derrota** (sem gasolina, tempo esgotado).
 
 ### Objetivo e fluxo de uma entrega
@@ -96,7 +104,7 @@ Pegar o pedido no restaurante → Atravessar a rua (obstáculos, gasolina) → P
 
 ### Fases e dificuldade
 
-- A **bag** escolhida no menu é a dificuldade: **iFudê** (fácil), **99 Problemas** (médio) e **Kitreta** (difícil). Ela define o tempo, o prazo dos pedidos e a frequência dos percalços.
+- A **bag** escolhida no menu é o capítulo e a dificuldade: **iFudê** (fácil), **99 Problemas** (médio) e **Kitreta** (difícil). Ela define o tempo, o prazo dos pedidos e a frequência dos percalços. O capítulo 2 libera ao fechar o 1, e o 3 ao fechar o 2 (para liberar todos desde o início: `CAPITULOS_EM_ORDEM = false` em `src/game_config.gd`).
 - Cada bag tem uma **campanha de 5 fases**. Vencer uma fase libera a próxima, e as já vencidas podem ser rejogadas.
 
 | Fase | Nome | Entregas | O que aparece |

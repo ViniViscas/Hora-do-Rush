@@ -42,7 +42,13 @@ static func salvar(dif_id: String, p: Dictionary) -> void:
 	cfg.save(caminho)
 
 
-## Cutscenes já vistas (valem para todas as bags): "intro", "fase0", "fase1"...
+## A campanha da bag foi fechada (venceu a última fase)?
+static func campanha_fechada(dif_id: String) -> bool:
+	var p := carregar(dif_id)
+	return p.recordes[Config.FASES.size() - 1] > 0
+
+
+## Cutscenes já vistas: "abertura_facil", "fase_medio_2"... (ficam na seção "geral")
 static func visto(chave: String) -> bool:
 	var cfg := ConfigFile.new()
 	cfg.load(caminho)

@@ -101,16 +101,16 @@ func _ready() -> void:
 	_criar_ui()
 	if jogar != "":
 		# Cartão da história antes da fase, só na primeira vez que ela é jogada
-		var chave := "fase%d" % n_fase
-		if Progresso.visto(chave) or n_fase >= Historia.FASES.size():
+		var chave := "fase_%s_%d" % [jogar, n_fase]
+		if Progresso.visto(chave):
 			_iniciar(jogar, n_fase)
 		else:
 			Som.musica("menu")
-			telas.mostrar_cutscene([Historia.FASES[n_fase]], func() -> void:
+			telas.mostrar_cutscene(Historia.antes_da_fase(jogar, n_fase), func() -> void:
 				Progresso.marcar_visto(chave)
 				_iniciar(jogar, n_fase))
 	else:
-		telas.mostrar_menu()
+		telas.mostrar_menu(_bags_bloqueadas())
 		Som.musica("menu")
 
 
@@ -314,7 +314,7 @@ func _criar_ui() -> void:
 		dif_id = id
 		prog = Progresso.carregar(id)
 		Progresso.salvar(id, prog)   # guarda as sementes sorteadas das fases
-		if Progresso.visto("intro"):
+		if Progresso.visto("abertura_" + id):
 			telas.mostrar_campanha(Config.DIFICULDADES[id], prog)
 		else:
 			_mostrar_intro())
@@ -476,11 +476,23 @@ func _on_codigo_errado() -> void:
 	hud.aviso("Código errado! -%d pts" % Config.PENALIDADE_CODIGO, Config.COR_VERMELHO)
 
 
-## Introdução da história (Felipe, a Tati e o sonho da casa). Depois volta às fases.
+## Abertura do capítulo da bag escolhida (história). Depois vai para as fases.
 func _mostrar_intro() -> void:
-	telas.mostrar_cutscene(Historia.INTRO, func() -> void:
-		Progresso.marcar_visto("intro")
+	telas.mostrar_cutscene(Historia.abertura(dif_id), func() -> void:
+		Progresso.marcar_visto("abertura_" + dif_id)
 		telas.mostrar_campanha(Config.DIFICULDADES[dif_id], prog))
+
+
+## Capítulos ainda trancados: só abrem depois de fechar a campanha do anterior.
+func _bags_bloqueadas() -> Array:
+	var lista := []
+	if not Config.CAPITULOS_EM_ORDEM:
+		return lista
+	for id in Historia.ORDEM:
+		var anterior := Historia.capitulo_anterior(id)
+		if anterior != "" and not Progresso.campanha_fechada(anterior):
+			lista.append(id)
+	return lista
 
 
 ## P/ESC (ou o botão "II" no celular): congela a partida e mostra a tela de pausa.
@@ -547,8 +559,9 @@ func _fim(vitoria: bool, mensagem: String, imagem: String = "") -> void:
 		titulo = "CAMPANHA FECHADA!" if n_fase == Config.FASES.size() - 1 else "TURNO FECHADO!"
 	if vitoria and n_fase == Config.FASES.size() - 1:
 		# Fechou a campanha: final da história e, depois, a tela de fim com a casa no fundo
-		telas.mostrar_cutscene(Historia.VITORIA, func() -> void:
-			telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(Historia.FUNDO_VITORIA)))
+		titulo = "%s FECHADO!" % Historia.CAPITULOS[dif_id].titulo.split(":")[0]
+		telas.mostrar_cutscene(Historia.final(dif_id), func() -> void:
+			telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(Historia.fundo_final(dif_id))))
 		return
 	telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(imagem) if imagem != "" else "")
 

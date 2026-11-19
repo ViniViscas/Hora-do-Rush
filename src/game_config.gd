@@ -133,6 +133,11 @@ const FASES := [
 	},
 ]
 
+# --- Capítulos da história ---
+# true: cada bag (capítulo) só é liberada depois de fechar a campanha da anterior
+# (iFudê -> 99 Problemas -> Kitreta). false: as três bags ficam livres desde o início.
+const CAPITULOS_EM_ORDEM := true
+
 # --- Pagamento (R$) ---
 const PONTOS_POR_REAL := 10     # vencendo: R$ 1 a cada 10 pontos
 const REAIS_POR_ENTREGA := 8    # perdendo: só as entregas feitas pagam a taxa
