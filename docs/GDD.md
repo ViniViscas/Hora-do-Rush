@@ -209,8 +209,9 @@ Todas essas distâncias ficam na tabela `FOLGAS` do gerador, para o grupo ajusta
 - No fim de cada fase vem o **acerto do turno**:
   - **Venceu:** R$ 1 a cada 10 pontos (inclui o bônus de tempo que sobrou).
   - **Perdeu:** só R$ 8 por entrega feita (a taxa de entrega). Assim, perder não zera o esforço, mas vencer paga bem mais.
+  - **Apps mais exigentes pagam mais** (como diz a história): ×1,0 no iFudê, ×1,3 no 99 Problemas e ×2 no Kitreta ("o Kitreta paga o dobro") (`pagamento` em `Config.DIFICULDADES`).
 - Rejogar uma fase vencida também paga, então quem travar numa fase pode voltar, juntar dinheiro e melhorar a moto.
-- Na prática (bot no médio, sem melhorias), uma fase vencida paga de ~R$ 80 (fase 1) a ~R$ 230 (fase 5).
+- Na prática (teste do bot): o capítulo 1 sem melhorias rende ~R$ 865 (fase 1: ~R$ 100, fase 5: ~R$ 240); o capítulo 2 com a moto no nível 1, ~R$ 560 a 740.
 - Lombada e boca de lobo só dão bônus **uma vez por pedido** cada, para não dar para ficar indo e voltando juntando pontos.
 
 ### 6.2 Oficina (melhorias da moto)
@@ -222,9 +223,9 @@ Aberta pelo menu de fases ou pela tela de fim. É uma cena própria: fundo da of
   - **Sem dinheiro:** reclama do "fiado". A falta de dinheiro não bloqueia o botão: tentar comprar faz a Tati responder.
 - Os personagens são desenhados por código em baixa resolução e ampliados 4x sem suavizar, para combinar com o fundo. Têm respiração, piscada, boca mexendo enquanto falam e expressões (neutra, feliz, brava).
 
-Cada melhoria tem **3 níveis**, a **R$ 50, R$ 100 e R$ 180** (R$ 1.650 para comprar tudo; uma campanha vencida de primeira rende ~R$ 650 no médio).
+Cada melhoria tem **3 níveis**, a **R$ 100, R$ 200 e R$ 300** (R$ 3.000 para a moto completa). A fase 1 do iFudê paga menos que um único nível 1.
 
-> Teste do bot: no **difícil** sem melhorias ele trava a partir da fase 2 ou 3; com tudo no nível 3, vence as 5. No **médio** vence as 5 até sem melhorias, que ali servem de folga para jogador humano.
+> Teste do bot no Kitreta: com tudo no **nível 2**, vence as fases 1 a 3 e trava nas fases 4 e 5; com tudo no **nível 3**, vence as 5, mas no limite (3,9 s sobrando na fase 5). Ou seja, o capítulo 3 praticamente exige a moto completa.
 
 | Melhoria | Efeito por nível | Por que ajuda |
 |---|---|---|
@@ -234,7 +235,9 @@ Cada melhoria tem **3 níveis**, a **R$ 50, R$ 100 e R$ 180** (R$ 1.650 para com
 | **Amortecedor** | Aguenta pousar ~6° mais torto sem cair (45° → 63° no nível 3) | Perdoa erros no equilíbrio do ar |
 | **Bag térmica** | +12% de prazo em cada pedido | Mais pedidos entregues adiantados, logo mais tempo de volta |
 
-- As melhorias são **por bag**: cada campanha tem a sua moto.
+- **A moto é uma só:** melhorias e dinheiro são compartilhados entre os três capítulos (seção "moto" do save). Fases, recordes e mapas continuam separados por capítulo.
+- **Saves:** 3 espaços independentes, escolhidos na tela inicial (**Nova campanha** / **Carregar campanha**). Nova campanha num espaço ocupado pede confirmação e reseta tudo; dá para apagar um save na tela de carregar. O salvamento é automático (fim de fase, compra, cutscene vista).
+- **Curva pretendida:** as melhorias são caras para a moto ir sendo melhorada aos poucos. Ela termina o capítulo 1 com algumas melhorias de nível 1, melhora bastante no capítulo 2 e chega ao capítulo 3 perto do máximo, que é praticamente obrigatório no Kitreta.
 - 💡 **Upgrade da bag (capacidade):** carregar mais de um pedido ao mesmo tempo ficou para depois, porque muda o loop de pedidos.
 - **Conquistas (achievements)** por habilidade. 💡 Ideias: "Voo da lombada" (pousar 5 lombadas seguidas), "Nem vi a CET" (fugir sem ser pego), "Tanque na reserva" (terminar a fase com menos de 5% de gasolina), "Código de primeira" (10 códigos sem erro).
 
@@ -263,7 +266,11 @@ Cada melhoria tem **3 níveis**, a **R$ 50, R$ 100 e R$ 180** (R$ 1.650 para com
 - **Animações:** rodas girando; piloto inclinando (para a frente ao acelerar, para trás ao frear); moto afundando a frente na freada e empinando de leve na arrancada; fumaça do escapamento; poeira da roda na estrada de terra; moto piscando enquanto está caída; cliente acenando no portão; giroflex da CET com feixes girando; semáforo piscando; chuva; números do código tremendo.
 - **Feedback visual:** tremor de tela na queda, no cruzamento, na multa da CET e em pousos fortes; nuvem de poeira no pouso; faíscas na queda; confete e "+pontos / +segundos" subindo na entrega; pontos ganhos e perdidos flutuando sobre a moto.
 - **Som:** tudo sintetizado por código (`src/som.gd`), sem arquivos de áudio de terceiros.
-  - **Trilhas:** menu calmo de fim de tarde (92 BPM) e **funk paulista** na partida (130 BPM: 808 no ritmo do tamborzão, palmas, "tuim" e synth "automotivo"). A música abaixa enquanto o cliente digita o código e enquanto a CET persegue.
+  - **Trilhas:** menu calmo de fim de tarde (92 BPM) e uma trilha de partida por capítulo, todas com composição original:
+    - **iFudê, funk paulista** (130 BPM): 808 no ritmo do tamborzão, palmas, "tuim" e synth "automotivo".
+    - **99 Problemas, funk das antigas** (128 BPM, estilo baile dos anos 2000): batida Miami bass, cowbell, "orquestra", melodia de synth e apito de baile.
+    - **Kitreta, funk "bruxaria"** (150 BPM): 808 distorcido sobre graves cromáticos, sinos dissonantes, chimbal em rajadas e sirene. É o som do estresse.
+  - A música abaixa enquanto o cliente digita o código e enquanto a CET persegue.
   - **Efeitos:** pulo, tranco na lombada, pouso, pouso perfeito, queda, buzina no cruzamento, apito da blitz, multa, coleta, entrega (caixa registradora), código (bipe/erro), alerta de reserva, tanque cheio, compra na oficina, clique, vinhetas de vitória e derrota.
   - **Sons contínuos:** motor (o tom sobe com a velocidade), freio, vento no voo, chuva, sirene da CET, bomba do posto.
   - **Tecla M** liga/desliga todo o som.

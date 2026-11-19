@@ -4,7 +4,7 @@ extends Node
 ## Uso, de qualquer script:  const Som := preload("res://src/som.gd")
 ##   Som.tocar("pouso")                     efeito curto
 ##   Som.loop("motor", true, -10.0, 1.4)    som contínuo (liga/desliga, volume em dB, tom)
-##   Som.musica("partida")                  troca a trilha ("" = silêncio)
+##   Som.musica("partida_facil")            troca a trilha ("" = silêncio)
 ## Tecla M liga/desliga todo o som.
 ##
 ## O nó fica pendurado na raiz da árvore (fora da cena principal), então a música
@@ -24,7 +24,8 @@ const GANHO := {
 	"erro": -15.0, "bipe": -12.0, "alerta": -11.5, "clique": -10.0, "compra": -8.0,
 	"tanque": -3.5, "vitoria": 0.0, "derrota": -3.0,
 }
-const VOLUME_MUSICA := {"menu": -5.0, "partida": -8.0}
+## Trilhas: "menu" e uma da partida por bag (iFudê, 99 Problemas, Kitreta).
+const VOLUME_MUSICA := {"menu": -5.0, "partida_facil": -8.0, "partida_medio": -5.5, "partida_dificil": -8.0}
 
 static var _inst = null
 static var mudo := false
@@ -265,8 +266,9 @@ func _nota(b: PackedFloat32Array, t0: float, dur: float, f0: float, f1: float, o
 
 
 ## Bumbo estilo 808: seno que despenca de tom no começo e segura um grave longo.
+## "saturacao" maior = grave mais distorcido.
 func _bumbo(b: PackedFloat32Array, t0: float, grave: float, dur: float, vol: float,
-		envolver: bool = false) -> void:
+		envolver: bool = false, saturacao: float = 1.8) -> void:
 	var tam := b.size()
 	var i0 := int(t0 * TAXA)
 	var n := int(dur * TAXA)
@@ -282,7 +284,7 @@ func _bumbo(b: PackedFloat32Array, t0: float, grave: float, dur: float, vol: flo
 		fase += f / TAXA
 		var env := exp(-t * 3.0 / dur) * minf(float(n - k) / (0.01 * TAXA), 1.0)
 		# Saturação leve: o "pancadão" do grave
-		b[i] += tanh(sin(TAU * fase) * 1.8) * env * vol
+		b[i] += tanh(sin(TAU * fase) * saturacao) * env * vol
 
 
 ## Palma: três estalos de ruído quase juntos e um rabo curto.
@@ -550,8 +552,9 @@ func _loop_novo(nome: String, b: PackedFloat32Array) -> void:
 func _gerar_musicas() -> void:
 	var menu := _wav(_normalizar(_musica_menu(), 0.9), true)
 	_entregar("menu", menu)
-	var funk := _wav(_normalizar(_musica_funk(), 0.9), true)
-	_entregar("partida", funk)
+	_entregar("partida_facil", _wav(_normalizar(_musica_funk_paulista(), 0.9), true))
+	_entregar("partida_medio", _wav(_normalizar(_musica_funk_antigo(), 0.9), true))
+	_entregar("partida_dificil", _wav(_normalizar(_musica_funk_bruxaria(), 0.9), true))
 
 
 func _entregar(nome: String, w: AudioStreamWAV) -> void:
@@ -560,10 +563,10 @@ func _entregar(nome: String, w: AudioStreamWAV) -> void:
 	_trava.unlock()
 
 
-## Trilha da partida: funk paulista ("pancadão"), 130 BPM, 8 compassos em loop.
+## Trilha do iFudê: funk paulista ("pancadão"), 130 BPM, 8 compassos em loop.
 ## 808 grave e longo na batida do tamborzão, palmas, chimbal, o "tuim" que desce
 ## e, na segunda metade, um synth agudo "automotivo" com vibrato.
-func _musica_funk() -> PackedFloat32Array:
+func _musica_funk_paulista() -> PackedFloat32Array:
 	var passo := 60.0 / 130.0 / 4.0   # semicolcheia
 	var compasso := passo * 16.0
 	var b := _vazio(compasso * 8.0)
@@ -603,6 +606,108 @@ func _musica_funk() -> PackedFloat32Array:
 		if c == 7:
 			_nota(b, t0 + 8 * passo, passo * 8.0, 500.0, 1500.0, Onda.SERRA, 0.08, 0.0, 0.05, 0.25,
 				Vector2(9.0, 0.02), true)
+	return b
+
+
+## Trilha do 99 Problemas: funk das antigas (baile dos anos 2000), 128 BPM, 8 compassos.
+## Batida Miami bass (bumbo 808 "tum... tum-tum", palmas no 2 e no 4), o cowbell do baile,
+## "orquestra" no começo dos compassos e, na segunda metade, uma melodia de synth
+## (composição original). Fecha o loop com o apito de baile.
+func _musica_funk_antigo() -> PackedFloat32Array:
+	var passo := 60.0 / 128.0 / 4.0
+	var compasso := passo * 16.0
+	var b := _vazio(compasso * 8.0)
+	# Ré menor, Si bemol, Dó, Lá (dois compassos cada)
+	var graves := [73.42, 73.42, 58.27, 58.27, 65.41, 65.41, 55.0, 55.0]
+	var acordes := [
+		[293.66, 349.23, 440.0], [293.66, 349.23, 440.0],
+		[233.08, 293.66, 349.23], [233.08, 293.66, 349.23],
+		[261.63, 329.63, 392.0], [261.63, 329.63, 392.0],
+		[220.0, 277.18, 329.63], [220.0, 277.18, 329.63],
+	]
+	# Melodia em colcheias para os compassos 5 a 8 (Hz; 0 = pausa)
+	var melodia := [
+		[659.25, 0.0, 659.25, 783.99, 698.46, 0.0, 659.25, 587.33],
+		[659.25, 0.0, 659.25, 783.99, 1046.5, 0.0, 783.99, 659.25],
+		[659.25, 0.0, 554.37, 659.25, 880.0, 0.0, 659.25, 554.37],
+		[554.37, 0.0, 554.37, 659.25, 554.37, 0.0, 440.0, 0.0],
+	]
+	for c in 8:
+		var t0: float = c * compasso
+		var g: float = graves[c]
+		for s in [0, 7, 10]:
+			_bumbo(b, t0 + s * passo, g, 0.42 if s == 0 else 0.3, 0.8, true, 1.4)
+		for s in [4, 12]:
+			_palma(b, t0 + s * passo, 0.34, true)
+		for s in 16:
+			var aberto := s % 4 == 2
+			_chimbal(b, t0 + s * passo, 0.12 if aberto else 0.05, 0.09 if aberto else 0.03, true)
+		# Cowbell do baile: dois tons quadrados bem curtos
+		for s in [2, 5, 7, 10, 13]:
+			_nota(b, t0 + s * passo, 0.09, 540.0, 540.0, Onda.QUADRADA, 0.06, 30.0, 0.001, 0.5, Vector2.ZERO, true)
+			_nota(b, t0 + s * passo, 0.09, 800.0, 800.0, Onda.QUADRADA, 0.05, 30.0, 0.001, 0.5, Vector2.ZERO, true)
+		# "Orquestra" (o acorde de impacto dos bailes antigos) a cada dois compassos
+		if c % 2 == 0:
+			for f in acordes[c]:
+				_nota(b, t0, 0.35, f, f, Onda.SERRA, 0.09, 9.0, 0.002, 0.45, Vector2.ZERO, true)
+				_nota(b, t0, 0.35, f * 2.0, f * 2.0, Onda.SERRA, 0.05, 11.0, 0.002, 0.4, Vector2.ZERO, true)
+		# Acorde curtinho no contratempo
+		for s in [6, 14]:
+			for f in acordes[c]:
+				_nota(b, t0 + s * passo, passo * 0.8, f * 2.0, f * 2.0, Onda.QUADRADA, 0.025, 14.0, 0.002, 0.4,
+					Vector2.ZERO, true)
+		if c >= 4:
+			var frase: Array = melodia[c - 4]
+			for k in 8:
+				var f: float = frase[k]
+				if f > 0.0:
+					_nota(b, t0 + k * 2.0 * passo, passo * 1.7, f, f, Onda.QUADRADA, 0.09, 6.0, 0.003, 0.35,
+						Vector2(5.5, 0.006), true)
+		if c == 7:
+			for k in 3:   # apito de baile
+				_nota(b, t0 + (12 + k) * passo, passo * 0.8, 2700.0, 2700.0, Onda.SENO, 0.12, 3.0, 0.005, 1.0,
+					Vector2(30.0, 0.03), true)
+	return b
+
+
+## Trilha do Kitreta: funk "bruxaria" (mandelão sombrio), 150 BPM, mais pesado e tenso:
+## 808 distorcido sobre graves cromáticos, sinos dissonantes, um zumbido arrastado,
+## chimbal em rajadas e um chiado que sobe antes das viradas. É o som do prazo apertado.
+func _musica_funk_bruxaria() -> PackedFloat32Array:
+	var passo := 60.0 / 150.0 / 4.0
+	var compasso := passo * 16.0
+	var b := _vazio(compasso * 8.0)
+	# Mi, Mi, Fá, Mi, Mi, Mi, Fá#, Fá: o grave quase não sai do lugar, só raspa meio tom
+	var graves := [41.2, 41.2, 43.65, 41.2, 41.2, 41.2, 46.25, 43.65]
+	for c in 8:
+		var t0: float = c * compasso
+		var g: float = graves[c]
+		for s in [0, 3, 6, 10, 12]:
+			_bumbo(b, t0 + s * passo, g, 0.26, 0.85, true, 3.2)
+		for s in [4, 12]:
+			_palma(b, t0 + s * passo, 0.3, true)
+		for s in [7, 15]:   # aro seco
+			_nota(b, t0 + s * passo, 0.03, 1.0, 1.0, Onda.RUIDO, 0.18, 60.0, 0.001, 0.7, Vector2.ZERO, true)
+		for s in range(0, 16, 2):
+			_chimbal(b, t0 + s * passo, 0.07, 0.03, true)
+		if c % 4 == 3:   # rajada de chimbal em tercinas no fim da frase
+			for k in 6:
+				_chimbal(b, t0 + 12.0 * passo + k * (4.0 * passo / 6.0), 0.1, 0.03, true)
+		# Zumbido grave arrastado por baixo de tudo
+		_nota(b, t0, compasso, g * 2.0, g * 2.0, Onda.SERRA, 0.05, 0.3, 0.2, 0.08, Vector2(0.5, 0.01), true)
+		# Sinos dissonantes: mi e fá tocando juntos, desafinando de leve
+		if c >= 2:
+			for s in [2, 9]:
+				_nota(b, t0 + s * passo, 0.5, 659.25, 655.0, Onda.SENO, 0.08, 5.0, 0.002, 1.0, Vector2.ZERO, true)
+				_nota(b, t0 + s * passo, 0.5, 698.46, 694.0, Onda.SENO, 0.06, 5.0, 0.002, 1.0, Vector2.ZERO, true)
+				_nota(b, t0 + s * passo, 0.3, 1318.5, 1310.0, Onda.SENO, 0.03, 8.0, 0.002, 1.0, Vector2.ZERO, true)
+		if c % 2 == 1:   # "tuim" mais rápido e mais grave
+			_nota(b, t0 + 14.0 * passo, 0.12, 1400.0, 300.0, Onda.SENO, 0.2, 10.0, 0.002, 1.0, Vector2.ZERO, true)
+		if c == 3 or c == 7:   # chiado subindo antes da virada
+			_nota(b, t0 + 8.0 * passo, passo * 8.0, 1.0, 1.0, Onda.RUIDO, 0.12, 0.0, passo * 8.0, 0.35,
+				Vector2.ZERO, true)
+		if c >= 4:   # sirene grave e lenta na segunda metade
+			_nota(b, t0, compasso, 330.0, 330.0, Onda.SERRA, 0.03, 0.0, 0.3, 0.2, Vector2(2.0, 0.08), true)
 	return b
 
 

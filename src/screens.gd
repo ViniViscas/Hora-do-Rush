@@ -1,6 +1,6 @@
 extends CanvasLayer
-## Telas sobrepostas: menu inicial (escolha da bag), fases da campanha, oficina,
-## pausa e fim de fase (vitória / game over).
+## Telas sobrepostas: tela inicial (nova campanha / carregar), escolha do save,
+## menu de capítulos (bag), fases da campanha, oficina, pausa e fim de fase.
 ## Funciona com o jogo pausado (process_mode ALWAYS); P/ESC pedem a pausa.
 
 signal escolher_bag(dificuldade: String)
@@ -12,12 +12,16 @@ signal voltar_menu
 signal pedir_pausa
 signal continuar
 signal ver_historia
+signal abrir_save(slot: int, novo: bool)   # nova campanha (apaga o slot) ou carregar
+signal apagar_save(slot: int)
+signal voltar_inicio
 
 const Config := preload("res://src/game_config.gd")
 const UI := preload("res://src/ui_util.gd")
 const TelaOficina := preload("res://src/tela_oficina.gd")
 const Cutscene := preload("res://src/cutscene.gd")
 const Historia := preload("res://src/historia.gd")
+const Progresso := preload("res://src/progresso.gd")
 
 var _atual: Control
 
@@ -61,6 +65,100 @@ func _base(opacidade: float, imagem: String = "") -> VBoxContainer:
 	caixa.alignment = BoxContainer.ALIGNMENT_CENTER
 	centro.add_child(caixa)
 	return caixa
+
+
+## Tela inicial: nova campanha ou carregar uma salva.
+func mostrar_inicio() -> void:
+	var caixa := _base(0.62, Historia.caminho("01_quartinho.jpg"))
+	_titulo(caixa, "HORA DO RUSH", 104, Config.COR_LARANJA)
+	_titulo(caixa, "A história do Felipe, motoboy de São Paulo.", 24, Config.COR_PAPEL)
+	var coluna := VBoxContainer.new()
+	coluna.add_theme_constant_override("separation", 14)
+	coluna.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	caixa.add_child(coluna)
+	var novo: Button = UI.botao("NOVA CAMPANHA", Config.COR_LARANJA, Config.COR_PRETO, 28)
+	novo.custom_minimum_size = Vector2(420, 72)
+	novo.pressed.connect(func() -> void: mostrar_saves(true))
+	coluna.add_child(novo)
+	var carregar: Button = UI.botao("CARREGAR CAMPANHA", Config.COR_AMARELO, Config.COR_PRETO, 28)
+	carregar.custom_minimum_size = Vector2(420, 72)
+	carregar.disabled = not Progresso.algum_save()
+	carregar.add_theme_stylebox_override("disabled", UI.estilo(Config.COR_CINZA_ESCURO))
+	carregar.add_theme_color_override("font_disabled_color", Config.COR_CINZA_CLARO)
+	carregar.pressed.connect(func() -> void: mostrar_saves(false))
+	coluna.add_child(carregar)
+	if carregar.disabled:
+		_titulo(caixa, "Nenhuma campanha salva ainda.", 15, Config.COR_CINZA_CLARO)
+
+
+## Os espaços de save. novo = true: escolher onde começar a campanha (ocupado pede confirmação);
+## novo = false: escolher qual carregar (ou apagar).
+func mostrar_saves(novo: bool) -> void:
+	var caixa := _base(0.8, Historia.caminho("03_oficina_da_tati.jpg"))
+	_titulo(caixa, "NOVA CAMPANHA" if novo else "CARREGAR CAMPANHA", 56, Config.COR_LARANJA)
+	_titulo(caixa, "Escolha um espaço para a campanha:" if novo else "Escolha a campanha:", 22, Config.COR_PAPEL)
+	var lista := VBoxContainer.new()
+	lista.add_theme_constant_override("separation", 10)
+	caixa.add_child(lista)
+	for n in range(1, Progresso.SLOTS + 1):
+		var r := Progresso.resumo(n)
+		var vazio := r.is_empty()
+		var linha := HBoxContainer.new()
+		linha.add_theme_constant_override("separation", 10)
+		lista.add_child(linha)
+		var cor: Color = Config.COR_CINZA if vazio else Config.COR_LARANJA
+		var b: Button = UI.botao("SAVE %d   ·   %s" % [n, _texto_resumo(r)], cor,
+			Config.COR_PAPEL if vazio else Config.COR_PRETO, 17)
+		b.custom_minimum_size = Vector2(700, 78)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.disabled = vazio and not novo
+		b.add_theme_stylebox_override("disabled", UI.estilo(Config.COR_CINZA_ESCURO))
+		b.add_theme_color_override("font_disabled_color", Config.COR_CINZA_CLARO)
+		if novo and not vazio:
+			b.pressed.connect(func() -> void: _confirmar(
+				"Começar do zero no SAVE %d?" % n,
+				"A campanha salva nele (%s) será apagada." % _texto_resumo(r).split("\n")[0],
+				"APAGAR E COMEÇAR", func() -> void: abrir_save.emit(n, true),
+				func() -> void: mostrar_saves(true)))
+		else:
+			b.pressed.connect(func() -> void: abrir_save.emit(n, novo))
+		linha.add_child(b)
+		if not novo and not vazio:
+			var x: Button = UI.botao("APAGAR", Config.COR_VERMELHO, Config.COR_PAPEL, 16)
+			x.custom_minimum_size = Vector2(130, 78)
+			x.pressed.connect(func() -> void: _confirmar(
+				"Apagar o SAVE %d?" % n, "Isso não tem volta: fases, dinheiro e melhorias da moto somem.",
+				"APAGAR", func() -> void: apagar_save.emit(n),
+				func() -> void: mostrar_saves(false)))
+			linha.add_child(x)
+	var rodape := _linha_botoes(caixa)
+	_botao(rodape, "VOLTAR", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 220, func() -> void: mostrar_inicio())
+
+
+func _texto_resumo(r: Dictionary) -> String:
+	if r.is_empty():
+		return "Vazio"
+	var onde := "História completa!"
+	if r.capitulo != "":
+		onde = "%s  ·  Fase %d" % [Historia.CAPITULOS[r.capitulo].titulo, r.fase]
+	var texto := "%s\n%d/%d fases  ·  R$ %d" % [onde, r.vencidas, r.total, r.dinheiro]
+	if r.data != "":
+		texto += "  ·  Salvo em %s" % r.data
+	return texto
+
+
+## Pergunta de confirmação (apagar save). "sim" executa; "nao" volta.
+func _confirmar(pergunta: String, detalhe: String, texto_sim: String, sim: Callable, nao: Callable) -> void:
+	var caixa := _base(0.85)
+	_titulo(caixa, pergunta, 44, Config.COR_LARANJA)
+	var d := UI.label(detalhe, 22, Config.COR_PAPEL)
+	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.custom_minimum_size = Vector2(760, 0)
+	caixa.add_child(d)
+	var linha := _linha_botoes(caixa)
+	_botao(linha, texto_sim, Config.COR_VERMELHO, Config.COR_PAPEL, 300, sim)
+	_botao(linha, "CANCELAR", Config.COR_CINZA, Config.COR_PAPEL, 220, nao)
 
 
 ## bloqueadas: bags cujo capítulo ainda não foi liberado (o anterior não foi fechado).
@@ -107,6 +205,11 @@ func mostrar_menu(bloqueadas: Array = []) -> void:
 		+ "Celular: botões na tela", 15, Config.COR_CINZA_CLARO, 4)
 	ajuda.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(ajuda)
+	var rodape := _linha_botoes(caixa)
+	_botao(rodape, "TELA INICIAL", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 260, func() -> void: voltar_inicio.emit())
+	var qual := UI.label("Jogando no SAVE %d" % Progresso.slot, 16, Config.COR_CINZA_CLARO, 4)
+	qual.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	rodape.add_child(qual)
 
 
 

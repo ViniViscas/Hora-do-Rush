@@ -85,6 +85,7 @@ func _ready() -> void:
 	rng.randomize()
 	_configurar_input()
 	Som.iniciar()
+	Progresso.migrar_antigo()
 	var jogar := dificuldade_pendente
 	dificuldade_pendente = ""
 	if jogar != "":
@@ -110,7 +111,12 @@ func _ready() -> void:
 				Progresso.marcar_visto(chave)
 				_iniciar(jogar, n_fase))
 	else:
-		telas.mostrar_menu(_bags_bloqueadas())
+		# Na abertura do jogo (nenhum save escolhido ainda) vem a tela inicial;
+		# voltando de uma fase, direto para os capítulos do save em uso.
+		if Progresso.slot == 0:
+			telas.mostrar_inicio()
+		else:
+			telas.mostrar_menu(_bags_bloqueadas())
 		Som.musica("menu")
 
 
@@ -335,6 +341,24 @@ func _criar_ui() -> void:
 		get_tree().reload_current_scene())
 	telas.pedir_pausa.connect(_alternar_pausa)
 	telas.continuar.connect(_alternar_pausa)
+	telas.abrir_save.connect(func(n: int, novo: bool) -> void:
+		if novo:
+			Progresso.novo(n)
+		else:
+			Progresso.usar(n)
+		prog = {}
+		telas.mostrar_menu(_bags_bloqueadas()))
+	telas.apagar_save.connect(func(n: int) -> void:
+		Progresso.apagar(n)
+		Som.tocar("erro")
+		if Progresso.algum_save():
+			telas.mostrar_saves(false)
+		else:
+			telas.mostrar_inicio())
+	telas.voltar_inicio.connect(func() -> void:
+		Progresso.slot = 0
+		prog = {}
+		telas.mostrar_inicio())
 
 
 # ---------------------------------------------------------------- fluxo
@@ -376,7 +400,7 @@ func _iniciar(id: String, indice_fase: int) -> void:
 	chuva.visible = obst.chovendo
 
 	estado = Estado.JOGANDO
-	Som.musica("partida")
+	Som.musica("partida_" + id)
 	_novo_pedido()
 	var msg := "FASE %d: %s\n%d entregas até o fim do rush." % [n_fase + 1, def_fase.nome, meta_entregas]
 	if obst.chovendo:
@@ -541,7 +565,9 @@ func _fim(vitoria: bool, mensagem: String, imagem: String = "") -> void:
 		pontos += bonus
 
 	# Acerto do turno: vencendo, recebe pelos pontos; perdendo, só a taxa das entregas feitas.
-	var pagamento := pontos / Config.PONTOS_POR_REAL if vitoria else entregas * Config.REAIS_POR_ENTREGA
+	# Apps mais exigentes pagam mais (multiplicador "pagamento" da bag).
+	var base := float(pontos) / Config.PONTOS_POR_REAL if vitoria else float(entregas * Config.REAIS_POR_ENTREGA)
+	var pagamento := int(base * dif.pagamento)
 	prog.dinheiro += pagamento
 	var recorde: bool = vitoria and pontos > prog.recordes[n_fase]
 	if vitoria:

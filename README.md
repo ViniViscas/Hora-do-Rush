@@ -55,11 +55,12 @@ Pelo terminal, de dentro da pasta do projeto: `godot --path .` (se o Godot foi i
 
 ### Primeiros passos no jogo
 
-1. No menu, escolha o **capítulo** (a bag). Só o capítulo 1, **iFudê**, começa liberado.
-2. Assista à abertura da história (`Espaço` avança, `Esc` pula).
-3. Na tela de fases, escolha a **fase 1**. Pegue o pedido no restaurante indicado pela seta, entregue na casa e digite o código que o cliente mostrar.
-4. Com o dinheiro dos turnos, compre melhorias na **oficina** da Tati.
-5. Feche as 5 fases para terminar o capítulo e liberar o próximo.
+1. Na tela inicial, clique em **Nova campanha** e escolha um dos 3 espaços de save (ou **Carregar campanha** para continuar uma salva).
+2. Escolha o **capítulo** (a bag). Só o capítulo 1, **iFudê**, começa liberado.
+3. Assista à abertura da história (`Espaço` avança, `Esc` pula).
+4. Na tela de fases, escolha a **fase 1**. Pegue o pedido no restaurante indicado pela seta, entregue na casa e digite o código que o cliente mostrar.
+5. Com o dinheiro dos turnos, compre melhorias na **oficina** da Tati.
+6. Feche as 5 fases para terminar o capítulo e liberar o próximo.
 
 ## Controles
 
@@ -164,9 +165,14 @@ Pegar o pedido no restaurante → Atravessar a rua (obstáculos, gasolina) → P
 
 ### Dinheiro e oficina
 
-- No fim da fase vem o **acerto do turno**: vencendo, R$ 1 a cada 10 pontos; perdendo, só R$ 8 por entrega feita.
+- No fim da fase vem o **acerto do turno**: vencendo, R$ 1 a cada 10 pontos; perdendo, só R$ 8 por entrega feita. Apps mais exigentes pagam mais: **×1,3 no 99 Problemas** e **×2 no Kitreta**.
 - Na **oficina** o dinheiro compra melhorias para a moto, com 3 níveis cada: **motor**, **freio**, **tanque**, **amortecedor** e **bag térmica**.
-- O progresso (fases, dinheiro, melhorias e recordes) fica salvo em arquivo, separado por bag: `user://progresso.cfg` (no Windows: `%APPDATA%\Godot\app_userdata\Hora do Rush\`). Para zerar, é só apagar esse arquivo.
+- A moto é **a mesma nos três capítulos**: as melhorias e o dinheiro passam de um capítulo para o outro. As melhorias são caras (R$ 100, 200 e 300 por nível; R$ 3.000 para a moto completa), então a moto vai sendo melhorada aos poucos, e o capítulo 3 (Kitreta) praticamente exige ela quase no máximo.
+- **Salvamento:** há **3 espaços de save**, cada um com uma campanha independente. O jogo salva sozinho ao fim de cada fase, a cada compra na oficina e a cada cutscene vista.
+  - **Nova campanha** num espaço ocupado pede confirmação e começa do zero (é assim que se reseta uma campanha).
+  - **Carregar campanha** mostra o resumo de cada save (capítulo e fase atuais, fases vencidas, dinheiro e data) e tem o botão **Apagar**.
+  - No menu de capítulos, **Tela inicial** volta para trocar de save.
+  - Os arquivos ficam em `user://save_1.cfg` a `save_3.cfg` (no Windows: `%APPDATA%\Godot\app_userdata\Hora do Rush\`). O save de versões anteriores (`progresso.cfg`) vira o save 1 automaticamente.
 
 ## Tecnologia
 
@@ -193,7 +199,7 @@ scenes/main.tscn       cena principal
 src/
   main.gd              monta a fase e controla pedidos, tempo, gasolina e pontuação
   game_config.gd       balanceamento (dificuldades, fases, melhorias, gasolina, pontos) e paleta de cores
-  progresso.gd         campanha salva em disco: fases liberadas, dinheiro, melhorias, recordes
+  progresso.gd         saves (3 espaços): fases liberadas, dinheiro, melhorias, recordes
   som.gd               sons e músicas sintetizados por código (efeitos, motor, funk da partida)
   gerador_fase.gd      gera o mapa por semente: chão, endereços e obstáculos (regras de distância em FOLGAS)
   obstaculos.gd        lógica do M2: lombada, boca de lobo, terra, ciclovia, blitz, cruzamento, chuva, CET
@@ -211,7 +217,7 @@ src/
   hud.gd               interface durante o jogo + setas para o destino
   code_popup.gd        balão do cliente com teclado numérico
   code_display.gd      números "quebradiços" do código
-  screens.gd           menu (escolha do capítulo), fases, pausa e tela de fim
+  screens.gd           tela inicial, saves, menu de capítulos, fases, pausa e tela de fim
   tela_oficina.gd      oficina: fundo, a mecânica Tati comentando as melhorias e o painel de compra
   personagem.gd        mecânica e entregador em pixel art desenhada por código
   historia.gd          roteiro das cutscenes (falas e imagens de cada cena)
@@ -266,7 +272,7 @@ Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada
 Não há arquivos de áudio de terceiros. Os únicos arquivos externos ao código são a fonte e as imagens (fundo da oficina e cutscenes), geradas com IA.
 
 - **Arte do jogo** (cenário, moto, obstáculos, interface, personagens da oficina): desenhada por código (formas e cores em `_draw()`).
-- **Sons e músicas:** todos sintetizados por código em `src/som.gd` (ondas senoidais, quadradas, serra e ruído), sem nenhuma gravação. Inclui a trilha do menu e o funk paulista da partida.
+- **Sons e músicas:** todos sintetizados por código em `src/som.gd` (ondas senoidais, quadradas, serra e ruído), sem nenhuma gravação. Inclui a trilha do menu e uma trilha de partida por capítulo: funk paulista (iFudê), funk das antigas (99 Problemas) e funk "bruxaria" (Kitreta), todas com composição original.
 - **Fundo da oficina:** `assets/img/oficina_fundo.jpg`, gerado pelo grupo com IA (**Google Gemini**). A mecânica e o entregador que aparecem por cima são desenhados por código.
 - **Cutscenes da história:** `assets/img/cutscenes/*.jpg`, geradas pelo grupo com IA (**Google Gemini**), a partir dos prompts do roteiro e usando o fundo da oficina como referência de estilo e de personagens.
 - **Fonte:** *Silkscreen Bold*, de Jason Kottke (The Silkscreen Project Authors) — arquivo `assets/fontes/Silkscreen-Bold.ttf`, obtido em <https://fonts.google.com/specimen/Silkscreen> (repositório <https://github.com/googlefonts/silkscreen>). Licença **SIL Open Font License 1.1**, texto completo em `assets/fontes/OFL.txt`.

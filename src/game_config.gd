@@ -24,6 +24,7 @@ const COR_AMARELO := Color(0.95, 0.76, 0.19)
 # chance_chuva / chance_cet: chance por partida de chover / de a CNH vencida soltar a CET
 # vel_cet: velocidade do carro da CET em relação à moto
 # chance_blitz: chance de ser parado passando devagar na blitz
+# pagamento: multiplica o R$ do acerto do turno (apps mais exigentes pagam mais)
 const DIFICULDADES := {
 	"facil": {
 		"nome": "iFudê",
@@ -43,6 +44,7 @@ const DIFICULDADES := {
 		"chance_cet": 0.5,
 		"vel_cet": 0.82,
 		"chance_blitz": 0.05,
+		"pagamento": 1.0,
 	},
 	"medio": {
 		"nome": "99 Problemas",
@@ -62,6 +64,7 @@ const DIFICULDADES := {
 		"chance_cet": 0.75,
 		"vel_cet": 0.88,
 		"chance_blitz": 0.08,
+		"pagamento": 1.3,
 	},
 	"dificil": {
 		"nome": "Kitreta",
@@ -81,6 +84,7 @@ const DIFICULDADES := {
 		"chance_cet": 1.0,
 		"vel_cet": 0.94,
 		"chance_blitz": 0.12,
+		"pagamento": 2.0,
 	},
 }
 
@@ -144,7 +148,9 @@ const REAIS_POR_ENTREGA := 8    # perdendo: só as entregas feitas pagam a taxa
 
 # --- Oficina: melhorias da moto, compradas entre as fases ---
 # por_nivel: quanto cada nível soma ao atributo (0.07 = +7%)
-const PRECOS_MELHORIA := [50, 100, 180]
+# Caras de propósito: a moto (a mesma nos três capítulos) é melhorada aos poucos e só
+# chega perto do máximo no capítulo 3 (Kitreta), que praticamente exige isso.
+const PRECOS_MELHORIA := [100, 200, 300]
 const MELHORIAS := {
 	"motor": {"nome": "Motor", "descricao": "+7% de velocidade e +10% de arrancada por nível", "por_nivel": 0.07},
 	"freio": {"nome": "Freio", "descricao": "+18% de força de freio por nível (ajuda na chuva)", "por_nivel": 0.18},
