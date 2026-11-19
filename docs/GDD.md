@@ -12,13 +12,35 @@
 | **Gênero** | Plataforma 2D com rolagem lateral, focado em pontuação |
 | **Fantasia** | Ser um motoboy na hora do rush: coletar pedidos, cortar caminho, fugir da CET e entregar dentro do prazo |
 | **Engine** | Godot 4 (GDScript) |
-| **Plataforma alvo** | PC (Windows), com possível exportação para a web |
+| **Plataforma alvo** | PC (Windows) e celular (Android, tela deitada, com botões de toque) |
 | **Tom visual** | *Gritty*, urbano, cansado: paleta **laranja, cinza, preto e vermelho** |
 
 **Pilares**
 1. **Correria com consequência:** velocidade dá tempo, mas os obstáculos punem quem corre demais.
 2. **Perde ponto, não perde vida:** errar custa pontuação e tempo. O único game over "seco" é a **gasolina acabar**.
 3. **Humor de rua:** situações reconhecíveis do dia a dia de entregador (cliente que não desce, blitz, código do pedido).
+
+---
+
+## 1.1 História
+
+**Premissa:** Felipe, 28 anos, motoboy da periferia de São Paulo, mora de aluguel num quartinho e tem três contas atrasadas. Ele quer mudar de vida: virar o melhor entregador da cidade e juntar dinheiro para comprar uma casa com quintal.
+
+**Conflito:** a moto velha vive quebrando, a CNH está vencida (por isso a CET persegue), e a cidade (lombadas, buracos, blitz, chuva, trânsito) joga contra o relógio.
+
+**Aliada:** a **Tati**, mecânica de uma oficina de bairro, conserta a moto em troca do pagamento das entregas. O dinheiro de cada turno vai para a oficina dela (as melhorias) e para o sonho da casa.
+
+**Como aparece no jogo** (`src/historia.gd`, `src/cutscene.gd`, imagens em `assets/img/cutscenes/`):
+
+| Momento | Cena |
+|---|---|
+| Primeira vez que se escolhe uma bag (rever: botão HISTÓRIA) | Introdução: o quartinho → a moto não liga → a oficina da Tati |
+| Antes de cada fase, na primeira vez | Cartão: Primeiro dia, Pegando o jeito, Sexta à noite, Véspera de feriado, Hora do Rush |
+| Ao fechar a fase 5 | Final: Felipe com a chave da casa nova, a Tati encostada na moto |
+| Derrota sem gasolina / por tempo | A imagem da cena vira o fundo da tela de Game Over, com uma frase de fechamento |
+
+- As imagens das cutscenes e o fundo da oficina foram gerados com IA (Google Gemini), declarados no README.
+- ⚠️ Falta a imagem da cena **Hora do Rush** (`assets/img/cutscenes/08_hora_do_rush.jpg`). Enquanto ela não existe, o cartão da fase 5 aparece com fundo escuro.
 
 ---
 
@@ -128,13 +150,13 @@ Nomes escolhidos pelo grupo. As bags usam só as **cores** dos apps reais, com d
 - **Estrada de terra:** velocidade máxima ×0,55 e aceleração ×0,6. O carro da CET também fica lento na terra.
 - **Ciclovia:** 4 trechos possíveis, cada um com 50% de chance de existir na partida (pelo menos um sempre aparece). Velocidade ×1,35.
 - **Cruzamento:** semáforo verde (2,6 s), amarelo piscando + faróis no fundo da rua (1 s), carro atravessando (1,4 s). Ser pego pelo carro = -50 pts, moto derrubada e empurrada para trás.
-- **Blitz:** a chance de ser parado é sorteada no meio da blitz. Devagar (até ~180 px/s) é só a chance base da dificuldade; acima disso sobe até +65%. Parado = 3 a 5 s.
+- **Blitz:** a chance de ser parado é sorteada no meio da blitz. Devagar (até ~260 px/s, metade da velocidade máxima) é só a chance base da dificuldade; acima disso sobe até +65%. Parado = 3 a 5 s.
 - **Chuva:** sorteada por partida (25% / 35% / 50%). Freio com 40% da força.
 - **CNH vencida → CET:** sorteada por partida (50% / 75% / 100%), dispara entre 15% e 40% do tempo da fase. O carro surge atrás da moto e persegue por 22 s (82% / 88% / 94% da velocidade da moto). Pegou = -60 pts, -8 s e 3 s parado. Fugiu = +50 pts. A perseguição pausa enquanto o cliente digita o código.
 - **Mapa:** dobrou de tamanho (14.000 px), com 5 restaurantes, 15 casas, 6 vagas de posto (3 ativas por partida), platôs/viadutos e prédios/lojas/bares/borracharias/terrenos preenchendo a rua. Desde o M2.5 o mapa é **gerado proceduralmente** (seção 5.1).
 
 ### 5.1 Geração procedural do mapa
-Cada partida gera um mapa novo a partir de uma **semente** (número). A mesma semente sempre gera o mesmo mapa: a tela de fim mostra o "Mapa nº", e **Jogar de novo** repete o mesmo mapa. O código fica em `scripts/gerador_fase.gd`.
+Cada partida gera um mapa novo a partir de uma **semente** (número). A mesma semente sempre gera o mesmo mapa: a tela de fim mostra o "Mapa nº", e **Jogar de novo** repete o mesmo mapa. O código fica em `src/gerador_fase.gd`.
 
 **Ordem de montagem:** chão (2 a 4 platôs/viadutos) → obstáculos de pista → restaurantes, postos e casas → obstáculos sólidos → trechos de ciclovia.
 
@@ -181,7 +203,15 @@ Todas essas distâncias ficam na tabela `FOLGAS` do gerador, para o grupo ajusta
 - Lombada e boca de lobo só dão bônus **uma vez por pedido** cada, para não dar para ficar indo e voltando juntando pontos.
 
 ### 6.2 Oficina (melhorias da moto)
-Aberta pelo menu de fases ou pela tela de fim. Cada melhoria tem **3 níveis**, a **R$ 50, R$ 100 e R$ 180** (R$ 1.650 para comprar tudo; uma campanha vencida de primeira rende ~R$ 650 no médio).
+Aberta pelo menu de fases ou pela tela de fim. É uma cena própria: fundo da oficina em pixel art, a **mecânica Tati** e o entregador conversando, e o painel de melhorias à direita.
+- **A Tati reage ao jogador:**
+  - **Ao chegar:** comenta o estado da moto (nenhuma melhoria, algumas, quase todas, tudo no máximo), o saldo e a bag escolhida.
+  - **Ao passar o mouse numa melhoria:** explica o que ela faz, com uma fala diferente para cada nível atual, e diz o preço.
+  - **Depois de uma compra:** comemora (polegar para cima) com uma fala sobre a peça nova.
+  - **Sem dinheiro:** reclama do "fiado". A falta de dinheiro não bloqueia o botão: tentar comprar faz a Tati responder.
+- Os personagens são desenhados por código em baixa resolução e ampliados 4x sem suavizar, para combinar com o fundo. Têm respiração, piscada, boca mexendo enquanto falam e expressões (neutra, feliz, brava).
+
+Cada melhoria tem **3 níveis**, a **R$ 50, R$ 100 e R$ 180** (R$ 1.650 para comprar tudo; uma campanha vencida de primeira rende ~R$ 650 no médio).
 
 > Teste do bot: no **difícil** sem melhorias ele trava a partir da fase 2 ou 3; com tudo no nível 3, vence as 5. No **médio** vence as 5 até sem melhorias, que ali servem de folga para jogador humano.
 
@@ -213,15 +243,25 @@ Aberta pelo menu de fases ou pela tela de fim. Cada melhoria tem **3 níveis**, 
 
 - **Paleta:** laranja (destaques, UI, a bag), cinzas (asfalto, prédios), preto (silhuetas, contornos), vermelho (perigo, CET, alertas).
 - Estilo *gritty*: céu poluído de fim de tarde, poste piscando, pichação, poças.
-- 💡 Texturas "sujas" (manchas, reboco caído, tijolo aparente, lixo na calçada, fios nos postes): **adiado** a pedido do grupo, entra no M5.
-- **Trilha sonora:** fica para depois.
+- **Arte 100% desenhada por código** (decisão do grupo: **sem sprites**, que tomariam tempo demais). A única exceção é a fonte pixelada *Silkscreen Bold* (licença OFL).
+- **Texturas "sujas"** (`src/sujeira.gd`, `src/ground.gd`):
+  - **Paredes:** umidade subindo do chão, escorridos de chuva e ferrugem, manchas de mofo, rachaduras e reboco caído com tijolo aparente.
+  - **Pichação:** tags em altura de mão e pixo paulistano (letras altas e retas) no alto dos prédios, mais lambe-lambe rasgado.
+  - **Rua:** lixo encostado nas paredes (sacos pretos, papelão, latinhas); calçada rachada com chiclete e mato nas frestas; asfalto com remendos, manchas de óleo e poças refletindo as luzes.
+  - **Postes:** fiação pendurada entre os postes, "gatos" de fio embolado, transformadores, tênis pendurado no fio e lâmpadas com defeito piscando.
+- **Animações:** rodas girando; piloto inclinando (para a frente ao acelerar, para trás ao frear); moto afundando a frente na freada e empinando de leve na arrancada; fumaça do escapamento; poeira da roda na estrada de terra; moto piscando enquanto está caída; cliente acenando no portão; giroflex da CET com feixes girando; semáforo piscando; chuva; números do código tremendo.
+- **Feedback visual:** tremor de tela na queda, no cruzamento, na multa da CET e em pousos fortes; nuvem de poeira no pouso; faíscas na queda; confete e "+pontos / +segundos" subindo na entrega; pontos ganhos e perdidos flutuando sobre a moto.
+- **Som:** tudo sintetizado por código (`src/som.gd`), sem arquivos de áudio de terceiros.
+  - **Trilhas:** menu calmo de fim de tarde (92 BPM) e **funk paulista** na partida (130 BPM: 808 no ritmo do tamborzão, palmas, "tuim" e synth "automotivo"). A música abaixa enquanto o cliente digita o código e enquanto a CET persegue.
+  - **Efeitos:** pulo, tranco na lombada, pouso, pouso perfeito, queda, buzina no cruzamento, apito da blitz, multa, coleta, entrega (caixa registradora), código (bipe/erro), alerta de reserva, tanque cheio, compra na oficina, clique, vinhetas de vitória e derrota.
+  - **Sons contínuos:** motor (o tom sobe com a velocidade), freio, vento no voo, chuva, sirene da CET, bomba do posto.
+  - **Tecla M** liga/desliga todo o som.
 
 ---
 
 ## 9. Fora do escopo por enquanto
 
 - **Mapas diferentes** (vários bairros/cidades, com outro visual): não atacar ainda. O layout da rua já é procedural (seção 5.1).
-- Trilha sonora.
 
 ---
 
@@ -232,6 +272,6 @@ Aberta pelo menu de fases ou pela tela de fim. Cada melhoria tem **3 níveis**, 
 | **M1 — Protótipo do núcleo** ✅ | Moto (aceleração, freio, pulo), uma fase, restaurante → cliente, prazo + relógio + bônus, gasolina + posto, código no portão, pontuação, HUD, game over/vitória |
 | **M2 — Obstáculos** ✅ | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET, ciclovia, mapa maior |
 | **M2.5 — Mapa procedural** ✅ | Rua gerada por semente, com regras de distância entre obstáculos |
-| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), ~~várias fases~~ (campanha de 5 fases), modos final de semana/domingueiros |
+| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), ~~várias fases~~ (campanha de 5 fases), ~~pausa e volta ao menu~~, modos final de semana/domingueiros |
 | **M4 — Progressão** | ~~Oficina de upgrades~~ (dinheiro + 5 melhorias), conquistas, ranking local |
-| **M5 — Arte e polimento** | Sprites finais, texturas sujas, efeitos, easter eggs, som |
+| **M5 — Arte e polimento** | ~~Texturas sujas~~, ~~animações e efeitos~~, ~~som~~ (sintetizado por código), ~~fonte pixelada~~, easter eggs. Sprites: descartados, a arte fica desenhada por código |
