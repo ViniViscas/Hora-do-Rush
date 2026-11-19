@@ -23,31 +23,43 @@ Jogo de plataforma 2D de motoqueiro entregador — Trabalho A3.
 
 Você é um motoboy de aplicativo em São Paulo, no pior horário do dia: a hora do rush. Colete pedidos nos restaurantes, atravesse a cidade desviando de lombadas, bocas de lobo, cruzamentos, blitzes e da CET (sua CNH venceu...) e entregue no portão do cliente dentro do prazo, digitando o código "quebradiço" do pedido. Cada entrega rápida devolve tempo ao relógio; errar custa pontos. E se a gasolina acabar, o turno acaba junto.
 
-São 5 fases por bag (dificuldade), cada uma com mais entregas e mais perigos. O dinheiro de cada turno paga melhorias da moto na oficina.
+A história do motoboy Felipe e da mecânica Tati é contada em **três capítulos**, um por bag (aplicativo): cada capítulo tem 5 fases, com mais entregas e mais perigos, e prazos cada vez mais apertados. O dinheiro de cada turno paga melhorias da moto na oficina da Tati.
 
 O design completo está em [`docs/GDD.md`](docs/GDD.md).
 
 ## Como rodar
 
-### Pré-requisitos
+Há dois jeitos: baixar o executável pronto (mais rápido, só Windows) ou rodar pelo código-fonte com o Godot.
 
+### Opção 1: executável (Windows)
+
+1. Baixe o `HoraDoRush.exe` na página de **[Releases](https://github.com/ViniViscas/Hora-do-Rush/releases/latest)** do repositório.
+2. Dê dois cliques. Não precisa instalar nada: o jogo inteiro está dentro do arquivo.
+3. Como o executável não tem assinatura digital, o Windows pode mostrar **"O Windows protegeu o computador"**. Clique em **Mais informações → Executar assim mesmo**.
+
+### Opção 2: código-fonte
+
+**Pré-requisitos**
 - **Godot Engine 4.7.2**, versão padrão (**não** a versão .NET/C#): <https://godotengine.org/download>
   - No Windows também dá pelo terminal: `winget install GodotEngine.GodotEngine`
-- Computador com placa de vídeo compatível com **OpenGL 3.3** (o jogo usa o renderizador *Compatibility*, o mais leve do Godot).
+- Computador com placa de vídeo compatível com **OpenGL 3.3** (o jogo usa o renderizador *Compatibility*, o mais leve do Godot). Na prática: vídeo integrado Intel HD 4000 ou mais novo (de 2012 em diante), ou qualquer placa de vídeo dedicada.
 - Testado no **Windows 11 (64 bits)**.
-- Não há outras dependências: nenhuma biblioteca, imagem ou arquivo de som externo (a única fonte usada já vem na pasta `assets/fontes/`). O Godot é o equivalente ao `requirements.txt` deste projeto.
+- Não há outras dependências nem bibliotecas: a fonte e as imagens já vêm no repositório (pasta `assets/`) e os sons são gerados pelo próprio código. O Godot é o equivalente ao `requirements.txt` deste projeto.
 
-### Rodando pelo código-fonte
-
-1. Baixe ou clone este repositório.
-2. Abra o Godot → **Importar** → selecione o arquivo `project.godot` desta pasta → **Importar e editar**.
+**Passos**
+1. Baixe (botão **Code → Download ZIP**) ou clone este repositório.
+2. Abra o Godot → **Importar** → selecione o arquivo `project.godot` desta pasta → **Importar e editar**. Na primeira vez o Godot importa as imagens e a fonte; leva alguns segundos.
 3. Aperte **F5** (ou o botão ▶ no canto superior direito) para jogar.
 
-Também dá para rodar direto pelo terminal, de dentro da pasta do projeto: `godot --path .`
+Pelo terminal, de dentro da pasta do projeto: `godot --path .` (se o Godot foi instalado pelo winget, o comando `godot` pode não estar no PATH; nesse caso use o caminho completo do executável do Godot).
 
-### Rodando pelo executável (Windows)
+### Primeiros passos no jogo
 
-O `HoraDoRush.exe` é gerado pela exportação (seção [Exportar](#exportar-pc--android)) e roda sem instalar nada.
+1. No menu, escolha o **capítulo** (a bag). Só o capítulo 1, **iFudê**, começa liberado.
+2. Assista à abertura da história (`Espaço` avança, `Esc` pula).
+3. Na tela de fases, escolha a **fase 1**. Pegue o pedido no restaurante indicado pela seta, entregue na casa e digite o código que o cliente mostrar.
+4. Com o dinheiro dos turnos, compre melhorias na **oficina** da Tati.
+5. Feche as 5 fases para terminar o capítulo e liberar o próximo.
 
 ## Controles
 
@@ -106,6 +118,7 @@ Pegar o pedido no restaurante → Atravessar a rua (obstáculos, gasolina) → P
 
 - A **bag** escolhida no menu é o capítulo e a dificuldade: **iFudê** (fácil), **99 Problemas** (médio) e **Kitreta** (difícil). Ela define o tempo, o prazo dos pedidos e a frequência dos percalços. O capítulo 2 libera ao fechar o 1, e o 3 ao fechar o 2 (para liberar todos desde o início: `CAPITULOS_EM_ORDEM = false` em `src/game_config.gd`).
 - Cada bag tem uma **campanha de 5 fases**. Vencer uma fase libera a próxima, e as já vencidas podem ser rejogadas.
+- A rua de cada fase é **gerada por código** a partir de um número (semente), com distâncias mínimas entre os obstáculos. Dentro da campanha, cada fase tem um mapa fixo: tentar de novo repete a mesma rua. O número aparece na tela de fim; para forçar um mapa específico, rode com `-- --semente=N`.
 
 | Fase | Nome | Entregas | O que aparece |
 |---|---|---|---|
@@ -172,8 +185,6 @@ Pegar o pedido no restaurante → Atravessar a rua (obstáculos, gasolina) → P
 
 Com isso o grupo pôde se concentrar nas regras e na jogabilidade em vez de reconstruir essas bases. Toda a lógica do jogo (pedidos, obstáculos, fases, pontuação, geração do mapa, desenho e sons) foi escrita no projeto, sem bibliotecas de terceiros.
 
-Cada fase tem um mapa fixo dentro da campanha (o número aparece na tela de fim). Para forçar um mapa específico, rode com `-- --semente=N`.
-
 ## Estrutura
 
 ```
@@ -200,7 +211,7 @@ src/
   hud.gd               interface durante o jogo + setas para o destino
   code_popup.gd        balão do cliente com teclado numérico
   code_display.gd      números "quebradiços" do código
-  screens.gd           menu (escolha da bag), fases, pausa e tela de fim
+  screens.gd           menu (escolha do capítulo), fases, pausa e tela de fim
   tela_oficina.gd      oficina: fundo, a mecânica Tati comentando as melhorias e o painel de compra
   personagem.gd        mecânica e entregador em pixel art desenhada por código
   historia.gd          roteiro das cutscenes (falas e imagens de cada cena)
@@ -213,7 +224,7 @@ assets/img/            fundo da oficina e imagens das cutscenes (cutscenes/), ge
 docs/GDD.md            documento de design
 ```
 
-Toda a arte do protótipo é desenhada por código (sem imagens), para poder trocar por sprites depois sem mudar a lógica.
+O cenário, a moto, os obstáculos e os personagens da oficina são desenhados por código. As únicas imagens são as cutscenes e o fundo da oficina.
 
 ## Exportar (PC / Android)
 
@@ -225,7 +236,7 @@ No Godot: **Editor → Gerenciar modelos de exportação** → baixar os templat
 godot --headless --path . --export-release "Windows Desktop" builds/windows/HoraDoRush.exe
 ```
 
-Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada. A pasta `builds/` fica fora do Git.
+Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada. A pasta `builds/` fica fora do Git; o executável é distribuído pelas [Releases](https://github.com/ViniViscas/Hora-do-Rush/releases) do GitHub.
 
 **Android (ainda não configurado):** adicionar o preset *Android* em **Projeto → Exportar**. Android exige também o SDK do Android e o JDK configurados (**Editor → Configurações do Editor → Exportar → Android**).
 
@@ -234,14 +245,27 @@ Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada
 - **M1 (núcleo):** moto, coleta → entrega, prazo com bônus de tempo, gasolina com postos aleatórios, código no portão, pontuação, 3 dificuldades (bags), suporte a toque.
 - **M2 (obstáculos):** lombada e boca de lobo com equilíbrio no ar, estrada de terra, ciclovia, cruzamento com semáforo, blitz, chuva, perseguição da CET e mapa com o dobro do tamanho.
 - **M2.5 (mapa procedural):** a rua é gerada a cada partida, com distâncias mínimas entre os obstáculos.
-- **M3 (parcial):** campanha de 5 fases em sequência por bag, com densidade de obstáculos crescente.
-- **M4 (parcial):** dinheiro por fase e oficina com 5 melhorias de 3 níveis.
+- **M3 (parcial):** campanha de 5 fases em sequência por bag, com densidade de obstáculos crescente; pausa e volta ao menu; história em três capítulos com cutscenes. Faltam os modos Final de semana e Domingueiros.
+- **M4 (parcial):** dinheiro por fase e oficina da Tati, com 5 melhorias de 3 níveis e falas que reagem às compras. Faltam conquistas e ranking local.
+- **M5 (parcial):** som e trilhas sintetizados por código, fonte pixelada, texturas "sujas", animações e feedback visual. Faltam os easter eggs.
+
+## Divisão de tarefas
+
+*(A preencher pelo grupo: o que cada integrante fez.)*
+
+| Integrante | Tarefas |
+|---|---|
+| Anna Carolina Martins | |
+| Pedro Henrique Nascimento | |
+| Isaías de Lima Gomes | |
+| Vinícius Viscardi Silveira | |
+| Júlia Silva de Araújo | |
 
 ## Créditos
 
 Não há arquivos de áudio de terceiros. Os únicos arquivos externos ao código são a fonte e as imagens (fundo da oficina e cutscenes), geradas com IA.
 
-- **Arte:** toda desenhada por código (formas e cores em `_draw()`).
+- **Arte do jogo** (cenário, moto, obstáculos, interface, personagens da oficina): desenhada por código (formas e cores em `_draw()`).
 - **Sons e músicas:** todos sintetizados por código em `src/som.gd` (ondas senoidais, quadradas, serra e ruído), sem nenhuma gravação. Inclui a trilha do menu e o funk paulista da partida.
 - **Fundo da oficina:** `assets/img/oficina_fundo.jpg`, gerado pelo grupo com IA (**Google Gemini**). A mecânica e o entregador que aparecem por cima são desenhados por código.
 - **Cutscenes da história:** `assets/img/cutscenes/*.jpg`, geradas pelo grupo com IA (**Google Gemini**), a partir dos prompts do roteiro e usando o fundo da oficina como referência de estilo e de personagens.
@@ -260,7 +284,7 @@ Não há arquivos de áudio de terceiros. Os únicos arquivos externos ao códig
 | Robôs de teste (partidas automáticas para balancear dificuldade e fases) | fora do repositório |
 | Redação e organização da documentação | `README.md`, `docs/GDD.md` |
 | Configuração da exportação para Windows | `export_presets.cfg` |
-| Roteiro da história (a partir dos pontos definidos pelo grupo) e prompts de imagem das cutscenes | roteiro das cutscenes |
+| Roteiro da história (a partir dos pontos definidos pelo grupo) e prompts de imagem das cutscenes | `src/historia.gd` |
 
 Também foi usado o **Google Gemini** (geração de imagens) para as imagens do jogo:
 
