@@ -1,0 +1,110 @@
+# Gera o HoraDoRush.apk (Android) nos servidores do GitHub e anexa na release.
+# Roda sozinho quando uma release é publicada; também dá para rodar à mão em
+# Actions → "Android (APK)" → Run workflow, informando a tag (ex.: v0.6.0).
+#
+# Assinatura: se o repositório tiver os secrets ANDROID_KEYSTORE_BASE64,
+# ANDROID_KEYSTORE_USER e ANDROID_KEYSTORE_PASSWORD, usa essa chave fixa.
+# Sem eles, gera uma chave nova a cada build (instala normalmente, mas para
+# atualizar uma versão já instalada é preciso desinstalar a antiga antes).
+
+name: Android (APK)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da release que vai receber o APK (ex.: v0.6.0)"
+        required: true
+      ref:
+        description: "Código a compilar (vazio = o da própria tag)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSAO: "4.7.2"
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código da release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || env.TAG }}
+
+      - name: Java 17 (exigido pelo Godot para Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar o Godot e os templates de exportação
+        run: |
+          set -e
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSAO}-stable"
+          wget -q "$base/Godot_v${GODOT_VERSAO}-stable_linux.x86_64.zip"
+          wget -q "$base/Godot_v${GODOT_VERSAO}-stable_export_templates.tpz"
+          unzip -q "Godot_v${GODOT_VERSAO}-stable_linux.x86_64.zip"
+          mv "Godot_v${GODOT_VERSAO}-stable_linux.x86_64" godot
+          destino="$HOME/.local/share/godot/export_templates/${GODOT_VERSAO}.stable"
+          mkdir -p "$destino"
+          unzip -q "Godot_v${GODOT_VERSAO}-stable_export_templates.tpz"
+          mv templates/* "$destino/"
+          rm -rf templates *.zip *.tpz
+          ls "$destino" | grep -i android
+
+      - name: Apontar o Android SDK e o Java para o Godot
+        run: |
+          set -e
+          # O runner do GitHub já vem com o Android SDK instalado em $ANDROID_HOME
+          mkdir -p "$HOME/.config/godot"
+          for arq in editor_settings-4.tres "editor_settings-${GODOT_VERSAO%.*}.tres"; do
+            printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
+              "$ANDROID_HOME" "$JAVA_HOME" > "$HOME/.config/godot/$arq"
+          done
+
+      - name: Chave de assinatura
+        env:
+          KS_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          KS_SENHA: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -e
+          ks="$RUNNER_TEMP/horadorush.keystore"
+          if [ -n "$KS_BASE64" ]; then
+            echo "$KS_BASE64" | base64 -d > "$ks"
+            usuario="$KS_USER"; senha="$KS_SENHA"
+          else
+            echo "Sem chave fixa nos secrets: gerando uma chave temporária."
+            usuario="horadorush"; senha="$(openssl rand -hex 16)"
+            keytool -genkeypair -keystore "$ks" -storetype PKCS12 -alias "$usuario" \
+              -keyalg RSA -keysize 2048 -validity 10000 -storepass "$senha" -keypass "$senha" \
+              -dname "CN=Hora do Rush, O=A3, C=BR"
+          fi
+          echo "::add-mask::$senha"
+          {
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$ks"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=$usuario"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=$senha"
+          } >> "$GITHUB_ENV"
+
+      - name: Importar o projeto
+        run: ./godot --headless --path . --import
+
+      - name: Exportar o APK
+        run: |
+          set -e
+          mkdir -p builds/android
+          ./godot --headless --path . --export-release "Android" builds/android/HoraDoRush.apk
+          ls -la builds/android/HoraDoRush.apk
+
+      - name: Anexar na release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" builds/android/HoraDoRush.apk --clobber
