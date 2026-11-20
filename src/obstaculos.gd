@@ -5,6 +5,7 @@ extends Node2D
 
 signal aviso(texto: String, cor: Color)
 signal placar(pontos: int, tempo: float, texto: String, cor: Color)
+signal evento(nome: String)   # para as conquistas: "pouso_perfeito", "fuga_cet", "blitz_embalado"
 
 const Config := preload("res://src/game_config.gd")
 const Som := preload("res://src/som.gd")
@@ -204,6 +205,7 @@ func _on_pousou(diferenca: float, tempo_ar: float, caiu: bool) -> void:
 			bonus = int(bonus * 1.5)
 			Som.tocar("perfeito")
 			placar.emit(bonus, 0.0, "Pouso perfeito! +%d pts" % bonus, Config.COR_LARANJA_CLARO)
+			evento.emit("pouso_perfeito")
 		else:
 			placar.emit(bonus, 0.0, "Pousou! +%d pts" % bonus, Config.COR_LARANJA_CLARO)
 	elif causa == "boca":
@@ -231,6 +233,8 @@ func _checar_blitz(x: float, vx: float) -> void:
 			aviso.emit("BLITZ! %s \"Documento, por favor.\"" % frase, Config.COR_VERMELHO)
 		elif excesso <= 0.0:
 			aviso.emit("Passou na blitz de boa.", Config.COR_CINZA_CLARO)
+		elif excesso > 0.3:
+			evento.emit("blitz_embalado")
 
 
 func _checar_cruzamentos(x: float) -> void:
@@ -277,6 +281,7 @@ func _atualizar_cet(delta: float, x: float) -> void:
 		Som.tocar("coleta")
 		placar.emit(Config.BONUS_FUGA_CET, 0.0, "Despistou a CET! +%d pts" % Config.BONUS_FUGA_CET,
 			Config.COR_LARANJA_CLARO)
+		evento.emit("fuga_cet")
 		_remover_cet()
 
 

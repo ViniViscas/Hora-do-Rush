@@ -143,6 +143,8 @@ func _exit_tree() -> void:
 func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k and k.pressed and not k.echo and k.physical_keycode == KEY_M:
+		if get_viewport().gui_get_focus_owner() is LineEdit:
+			return   # digitando um nome (ranking): o M é letra, não o mudo
 		alternar_mudo()
 
 

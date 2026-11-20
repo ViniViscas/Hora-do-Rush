@@ -29,7 +29,7 @@ O design completo está em [`docs/GDD.md`](docs/GDD.md).
 
 ## Como rodar
 
-Há dois jeitos: baixar o executável pronto (mais rápido, só Windows) ou rodar pelo código-fonte com o Godot.
+Há três jeitos: baixar o executável pronto (Windows), instalar o APK (Android) ou rodar pelo código-fonte com o Godot.
 
 ### Opção 1: executável (Windows)
 
@@ -37,7 +37,13 @@ Há dois jeitos: baixar o executável pronto (mais rápido, só Windows) ou roda
 2. Dê dois cliques. Não precisa instalar nada: o jogo inteiro está dentro do arquivo.
 3. Como o executável não tem assinatura digital, o Windows pode mostrar **"O Windows protegeu o computador"**. Clique em **Mais informações → Executar assim mesmo**.
 
-### Opção 2: código-fonte
+### Opção 2: Android
+
+1. No celular, abra a página de **[Releases](https://github.com/ViniViscas/Hora-do-Rush/releases/latest)** e baixe o `HoraDoRush.apk`.
+2. Abra o arquivo. Na primeira vez o Android pede para **permitir a instalação de apps desta fonte** (o navegador ou o gerenciador de arquivos): permita e instale.
+3. Os controles aparecem como botões na tela. Se já tinha uma versão anterior instalada e a instalação falhar, desinstale a antiga primeiro.
+
+### Opção 3: código-fonte
 
 **Pré-requisitos**
 - **Godot Engine 4.7.2**, versão padrão (**não** a versão .NET/C#): <https://godotengine.org/download>
@@ -165,9 +171,11 @@ Pegar o pedido no restaurante → Atravessar a rua (obstáculos, gasolina) → P
 
 ### Dinheiro e oficina
 
-- No fim da fase vem o **acerto do turno**: vencendo, R$ 1 a cada 10 pontos; perdendo, só R$ 8 por entrega feita. Apps mais exigentes pagam mais: **×1,3 no 99 Problemas** e **×2 no Kitreta**.
+- No fim da fase vem o **acerto do turno**: vencendo, R$ 1 a cada 10 pontos; perdendo, só R$ 8 por entrega feita. Apps mais exigentes pagam mais: **×1,8 no 99 Problemas** e **×2,5 no Kitreta**.
 - Na **oficina** o dinheiro compra melhorias para a moto, com 3 níveis cada: **motor**, **freio**, **tanque**, **amortecedor** e **bag térmica**.
 - A moto é **a mesma nos três capítulos**: as melhorias e o dinheiro passam de um capítulo para o outro. As melhorias são caras (R$ 100, 200 e 300 por nível; R$ 3.000 para a moto completa), então a moto vai sendo melhorada aos poucos, e o capítulo 3 (Kitreta) praticamente exige ela quase no máximo.
+- **Conquistas (12, por save):** Primeira entrega, Turno fechado, Liso (vencer sem cair), Asa delta (pouso perfeito), Fugiu da CET, Passou batido (blitz embalado sem ser parado), No vapor (vencer com menos de 10% de gasolina), Investimento (primeira melhoria), Moto no talo (tudo no máximo) e uma por capítulo fechado (A casa, A reforma, A oficina). Aparece um aviso no canto da tela na hora; o quadro completo fica no botão **Conquistas** do menu de capítulos.
+- **Ranking local:** os 5 melhores resultados de cada fase de cada capítulo, com nome e data. Ao vencer uma fase com pontos para entrar no ranking, o jogo pede o nome na tela de fim. O ranking é do computador (vale para todos os saves) e fica no botão **Ranking** da tela de fases.
 - **Salvamento:** há **3 espaços de save**, cada um com uma campanha independente. O jogo salva sozinho ao fim de cada fase, a cada compra na oficina e a cada cutscene vista.
   - **Nova campanha** num espaço ocupado pede confirmação e começa do zero (é assim que se reseta uma campanha).
   - **Carregar campanha** mostra o resumo de cada save (capítulo e fase atuais, fases vencidas, dinheiro e data) e tem o botão **Apagar**.
@@ -200,6 +208,8 @@ src/
   main.gd              monta a fase e controla pedidos, tempo, gasolina e pontuação
   game_config.gd       balanceamento (dificuldades, fases, melhorias, gasolina, pontos) e paleta de cores
   progresso.gd         saves (3 espaços): fases liberadas, dinheiro, melhorias, recordes
+  conquistas.gd        lista de conquistas e desbloqueio (guardadas no save)
+  ranking.gd           ranking local: 5 melhores por fase, com nome (user://ranking.cfg)
   som.gd               sons e músicas sintetizados por código (efeitos, motor, funk da partida)
   gerador_fase.gd      gera o mapa por semente: chão, endereços e obstáculos (regras de distância em FOLGAS)
   obstaculos.gd        lógica do M2: lombada, boca de lobo, terra, ciclovia, blitz, cruzamento, chuva, CET
@@ -217,7 +227,7 @@ src/
   hud.gd               interface durante o jogo + setas para o destino
   code_popup.gd        balão do cliente com teclado numérico
   code_display.gd      números "quebradiços" do código
-  screens.gd           tela inicial, saves, menu de capítulos, fases, pausa e tela de fim
+  screens.gd           tela inicial, saves, menu de capítulos, fases, conquistas, ranking, pausa e fim
   tela_oficina.gd      oficina: fundo, a mecânica Tati comentando as melhorias e o painel de compra
   personagem.gd        mecânica e entregador em pixel art desenhada por código
   historia.gd          roteiro das cutscenes (falas e imagens de cada cena)
@@ -244,7 +254,10 @@ godot --headless --path . --export-release "Windows Desktop" builds/windows/Hora
 
 Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada. A pasta `builds/` fica fora do Git; o executável é distribuído pelas [Releases](https://github.com/ViniViscas/Hora-do-Rush/releases) do GitHub.
 
-**Android (ainda não configurado):** adicionar o preset *Android* em **Projeto → Exportar**. Android exige também o SDK do Android e o JDK configurados (**Editor → Configurações do Editor → Exportar → Android**).
+**Android:** o `HoraDoRush.apk` é gerado **automaticamente pelo GitHub Actions** (`.github/workflows/android.yml`): toda vez que uma release é publicada, os servidores do GitHub baixam o Godot 4.7.2, exportam o APK com o preset *Android* de `export_presets.cfg` e anexam o arquivo na release. Ninguém do grupo precisa instalar o Android SDK. Para gerar de novo à mão: aba **Actions → Android (APK) → Run workflow**, informando a tag.
+
+- **Assinatura:** se o repositório tiver os *secrets* `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_USER` e `ANDROID_KEYSTORE_PASSWORD`, o APK é assinado com essa chave fixa. Sem eles, cada build gera uma chave temporária: instala normalmente, mas para atualizar é preciso desinstalar a versão antiga antes.
+- **Exportar no próprio PC** (opcional): além dos templates, exige o Android SDK e o JDK 17 configurados em **Editor → Configurações do Editor → Exportar → Android**; depois, `godot --headless --path . --export-release "Android" builds/android/HoraDoRush.apk`.
 
 ## Status
 
@@ -252,7 +265,7 @@ Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada
 - **M2 (obstáculos):** lombada e boca de lobo com equilíbrio no ar, estrada de terra, ciclovia, cruzamento com semáforo, blitz, chuva, perseguição da CET e mapa com o dobro do tamanho.
 - **M2.5 (mapa procedural):** a rua é gerada a cada partida, com distâncias mínimas entre os obstáculos.
 - **M3 (parcial):** campanha de 5 fases em sequência por bag, com densidade de obstáculos crescente; pausa e volta ao menu; história em três capítulos com cutscenes. Faltam os modos Final de semana e Domingueiros.
-- **M4 (parcial):** dinheiro por fase e oficina da Tati, com 5 melhorias de 3 níveis e falas que reagem às compras. Faltam conquistas e ranking local.
+- **M4 (progressão):** dinheiro por fase e oficina da Tati, com 5 melhorias de 3 níveis e falas que reagem às compras; 12 conquistas e ranking local por fase.
 - **M5 (parcial):** som e trilhas sintetizados por código, fonte pixelada, texturas "sujas", animações e feedback visual. Faltam os easter eggs.
 
 ## Divisão de tarefas

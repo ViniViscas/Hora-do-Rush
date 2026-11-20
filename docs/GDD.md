@@ -209,7 +209,7 @@ Todas essas distâncias ficam na tabela `FOLGAS` do gerador, para o grupo ajusta
 - No fim de cada fase vem o **acerto do turno**:
   - **Venceu:** R$ 1 a cada 10 pontos (inclui o bônus de tempo que sobrou).
   - **Perdeu:** só R$ 8 por entrega feita (a taxa de entrega). Assim, perder não zera o esforço, mas vencer paga bem mais.
-  - **Apps mais exigentes pagam mais** (como diz a história): ×1,0 no iFudê, ×1,3 no 99 Problemas e ×2 no Kitreta ("o Kitreta paga o dobro") (`pagamento` em `Config.DIFICULDADES`).
+  - **Apps mais exigentes pagam mais** (como diz a história): ×1,0 no iFudê, ×1,8 no 99 Problemas e ×2,5 no Kitreta (`pagamento` em `Config.DIFICULDADES`).
 - Rejogar uma fase vencida também paga, então quem travar numa fase pode voltar, juntar dinheiro e melhorar a moto.
 - Na prática (teste do bot): o capítulo 1 sem melhorias rende ~R$ 865 (fase 1: ~R$ 100, fase 5: ~R$ 240); o capítulo 2 com a moto no nível 1, ~R$ 560 a 740.
 - Lombada e boca de lobo só dão bônus **uma vez por pedido** cada, para não dar para ficar indo e voltando juntando pontos.
@@ -236,6 +236,8 @@ Cada melhoria tem **3 níveis**, a **R$ 100, R$ 200 e R$ 300** (R$ 3.000 para a 
 | **Bag térmica** | +12% de prazo em cada pedido | Mais pedidos entregues adiantados, logo mais tempo de volta |
 
 - **A moto é uma só:** melhorias e dinheiro são compartilhados entre os três capítulos (seção "moto" do save). Fases, recordes e mapas continuam separados por capítulo.
+- **Conquistas (12, por save):** Primeira entrega, Turno fechado, Liso (vencer sem cair), Asa delta (pouso perfeito), Fugiu da CET, Passou batido (blitz embalado sem ser parado), No vapor (vencer com menos de 10% de gasolina), Investimento (primeira melhoria), Moto no talo (tudo no máximo) e uma por capítulo fechado (A casa, A reforma, A oficina). Aparece um aviso no canto da tela na hora; o quadro completo fica no botão **Conquistas** do menu de capítulos.
+- **Ranking local:** os 5 melhores resultados de cada fase de cada capítulo, com nome e data. Ao vencer uma fase com pontos para entrar no ranking, o jogo pede o nome na tela de fim. O ranking é do computador (vale para todos os saves) e fica no botão **Ranking** da tela de fases.
 - **Saves:** 3 espaços independentes, escolhidos na tela inicial (**Nova campanha** / **Carregar campanha**). Nova campanha num espaço ocupado pede confirmação e reseta tudo; dá para apagar um save na tela de carregar. O salvamento é automático (fim de fase, compra, cutscene vista).
 - **Curva pretendida:** as melhorias são caras para a moto ir sendo melhorada aos poucos. Ela termina o capítulo 1 com algumas melhorias de nível 1, melhora bastante no capítulo 2 e chega ao capítulo 3 perto do máximo, que é praticamente obrigatório no Kitreta.
 - 💡 **Upgrade da bag (capacidade):** carregar mais de um pedido ao mesmo tempo ficou para depois, porque muda o loop de pedidos.
@@ -291,5 +293,5 @@ Cada melhoria tem **3 níveis**, a **R$ 100, R$ 200 e R$ 300** (R$ 3.000 para a 
 | **M2 — Obstáculos** ✅ | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET, ciclovia, mapa maior |
 | **M2.5 — Mapa procedural** ✅ | Rua gerada por semente, com regras de distância entre obstáculos |
 | **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), ~~várias fases~~ (campanha de 5 fases), ~~pausa e volta ao menu~~, modos final de semana/domingueiros |
-| **M4 — Progressão** | ~~Oficina de upgrades~~ (dinheiro + 5 melhorias), conquistas, ranking local |
+| **M4 — Progressão** ✅ | ~~Oficina de upgrades~~ (dinheiro + 5 melhorias), ~~conquistas~~ (12, por save), ~~ranking local~~ (5 melhores por fase) |
 | **M5 — Arte e polimento** | ~~Texturas sujas~~, ~~animações e efeitos~~, ~~som~~ (sintetizado por código), ~~fonte pixelada~~, easter eggs. Sprites: descartados, a arte fica desenhada por código |

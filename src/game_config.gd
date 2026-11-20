@@ -64,7 +64,7 @@ const DIFICULDADES := {
 		"chance_cet": 0.75,
 		"vel_cet": 0.88,
 		"chance_blitz": 0.08,
-		"pagamento": 1.3,
+		"pagamento": 1.8,
 	},
 	"dificil": {
 		"nome": "Kitreta",
@@ -84,7 +84,7 @@ const DIFICULDADES := {
 		"chance_cet": 1.0,
 		"vel_cet": 0.94,
 		"chance_blitz": 0.12,
-		"pagamento": 2.0,
+		"pagamento": 2.5,
 	},
 }
 

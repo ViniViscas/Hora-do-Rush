@@ -15,6 +15,9 @@ signal ver_historia
 signal abrir_save(slot: int, novo: bool)   # nova campanha (apaga o slot) ou carregar
 signal apagar_save(slot: int)
 signal voltar_inicio
+signal voltar_capitulos
+signal ver_conquistas
+signal ver_ranking
 
 const Config := preload("res://src/game_config.gd")
 const UI := preload("res://src/ui_util.gd")
@@ -22,6 +25,9 @@ const TelaOficina := preload("res://src/tela_oficina.gd")
 const Cutscene := preload("res://src/cutscene.gd")
 const Historia := preload("res://src/historia.gd")
 const Progresso := preload("res://src/progresso.gd")
+const Conquistas := preload("res://src/conquistas.gd")
+const Ranking := preload("res://src/ranking.gd")
+const Som := preload("res://src/som.gd")
 
 var _atual: Control
 
@@ -206,6 +212,7 @@ func mostrar_menu(bloqueadas: Array = []) -> void:
 	ajuda.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(ajuda)
 	var rodape := _linha_botoes(caixa)
+	_botao(rodape, "CONQUISTAS", Config.COR_AMARELO, Config.COR_PRETO, 260, func() -> void: ver_conquistas.emit())
 	_botao(rodape, "TELA INICIAL", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 260, func() -> void: voltar_inicio.emit())
 	var qual := UI.label("Jogando no SAVE %d" % Progresso.slot, 16, Config.COR_CINZA_CLARO, 4)
 	qual.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -267,6 +274,7 @@ func mostrar_campanha(d: Dictionary, p: Dictionary) -> void:
 	var linha := _linha_botoes(caixa)
 	_botao(linha, "OFICINA", Config.COR_AMARELO, Config.COR_PRETO, 200, func() -> void: abrir_oficina.emit())
 	_botao(linha, "HISTÓRIA", Config.COR_LARANJA_CLARO, Config.COR_PRETO, 200, func() -> void: ver_historia.emit())
+	_botao(linha, "RANKING", Config.COR_PAPEL, Config.COR_PRETO, 200, func() -> void: ver_ranking.emit())
 	_botao(linha, "TROCAR BAG", Config.COR_CINZA, Config.COR_PAPEL, 200, func() -> void: voltar_menu.emit())
 
 
@@ -297,8 +305,10 @@ func reagir_compra(melhoria: String, ok: bool, p: Dictionary) -> void:
 		_atual.reagir(melhoria, ok, p)
 
 
+## ranking (opcional): {"dif_id", "fase", "pontos"}; se os pontos entram no ranking da fase,
+## aparece o campo para digitar o nome.
 func mostrar_fim(vitoria: bool, titulo: String, mensagem: String, estatisticas: String, indice_fase: int,
-		imagem: String = "") -> void:
+		imagem: String = "", ranking: Dictionary = {}) -> void:
 	var caixa := _base(0.8 if imagem == "" else 0.6, imagem)
 	_titulo(caixa, titulo, 64, Config.COR_LARANJA if vitoria else Config.COR_VERMELHO)
 	var m := UI.label(mensagem, 26, Config.COR_PAPEL)
@@ -309,6 +319,8 @@ func mostrar_fim(vitoria: bool, titulo: String, mensagem: String, estatisticas: 
 	var e := UI.label(estatisticas, 22, Config.COR_CINZA_CLARO, 4)
 	e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(e)
+	if not ranking.is_empty() and Ranking.entra(ranking.dif_id, ranking.fase, ranking.pontos):
+		_campo_ranking(caixa, ranking)
 
 	var linha := _linha_botoes(caixa)
 	var tem_proxima := indice_fase + 1 < Config.FASES.size()
@@ -321,6 +333,144 @@ func mostrar_fim(vitoria: bool, titulo: String, mensagem: String, estatisticas: 
 	_botao(linha, "OFICINA", Config.COR_AMARELO, Config.COR_PRETO, 180, func() -> void: abrir_oficina.emit())
 	_botao(linha, "FASES", Config.COR_CINZA, Config.COR_PAPEL, 160, func() -> void: voltar_campanha.emit())
 	_botao(linha, "MENU", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 160, func() -> void: voltar_menu.emit())
+
+
+## "Entrou no ranking!": campo do nome + botão. Depois de gravar, vira a posição alcançada.
+func _campo_ranking(caixa: VBoxContainer, r: Dictionary) -> void:
+	var linha := _linha_botoes(caixa)
+	var rotulo := UI.label("ENTROU NO RANKING! SEU NOME:", 20, Config.COR_AMARELO, 4)
+	rotulo.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	linha.add_child(rotulo)
+	var campo := LineEdit.new()
+	campo.max_length = Ranking.MAX_NOME
+	campo.text = Ranking.ultimo_nome()
+	campo.placeholder_text = "FELIPE"
+	campo.custom_minimum_size = Vector2(260, 48)
+	campo.add_theme_font_size_override("font_size", 22)
+	campo.add_theme_stylebox_override("normal", UI.estilo(Config.COR_PAPEL))
+	campo.add_theme_stylebox_override("focus", UI.estilo(Config.COR_PAPEL, Config.COR_LARANJA))
+	campo.add_theme_color_override("font_color", Config.COR_PRETO)
+	campo.add_theme_color_override("font_placeholder_color", Config.COR_CINZA_CLARO)
+	campo.add_theme_color_override("caret_color", Config.COR_LARANJA)
+	linha.add_child(campo)
+	var salvar: Button = UI.botao("SALVAR", Config.COR_AMARELO, Config.COR_PRETO, 20)
+	salvar.custom_minimum_size = Vector2(150, 48)
+	linha.add_child(salvar)
+	var gravar := func() -> void:
+		if not is_instance_valid(campo):
+			return
+		var pos := Ranking.registrar(r.dif_id, r.fase, campo.text, r.pontos)
+		for filho in linha.get_children():
+			filho.queue_free()
+		var feito := UI.label("#%d NO RANKING DA FASE %d!" % [pos, r.fase + 1] if pos > 0 else "Não entrou no ranking.",
+			22, Config.COR_AMARELO, 4)
+		linha.add_child(feito)
+		Som.tocar("compra")
+	salvar.pressed.connect(gravar)
+	campo.text_submitted.connect(func(_t: String) -> void: gravar.call())
+	campo.call_deferred("grab_focus")
+	campo.call_deferred("select_all")
+
+
+## Ranking local da bag: abas com as 5 fases e os TAMANHO melhores de cada uma.
+func mostrar_ranking(d: Dictionary, dif_id: String, fase: int = 0) -> void:
+	var caixa := _base(0.85)
+	_titulo(caixa, "RANKING · %s" % d.nome, 52, d.cor)
+	var abas := _linha_botoes(caixa)
+	abas.add_theme_constant_override("separation", 8)
+	for i in Config.FASES.size():
+		var atual := i == fase
+		var b: Button = UI.botao("FASE %d" % (i + 1), Config.COR_LARANJA if atual else Config.COR_CINZA,
+			Config.COR_PRETO if atual else Config.COR_PAPEL, 18)
+		b.custom_minimum_size = Vector2(130, 48)
+		b.pressed.connect(func() -> void: mostrar_ranking(d, dif_id, i))
+		abas.add_child(b)
+	_titulo(caixa, Config.FASES[fase].nome, 24, Config.COR_PAPEL)
+
+	var tabela := GridContainer.new()
+	tabela.columns = 4
+	tabela.add_theme_constant_override("h_separation", 40)
+	tabela.add_theme_constant_override("v_separation", 10)
+	tabela.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	caixa.add_child(tabela)
+	var l := Ranking.lista(dif_id, fase)
+	for pos in Ranking.TAMANHO:
+		var cor: Color = Config.COR_AMARELO if pos == 0 else Config.COR_PAPEL
+		var tem := pos < l.size()
+		if not tem:
+			cor = Config.COR_CINZA_CLARO
+		var celulas := ["%d." % (pos + 1), l[pos].nome if tem else "---",
+			"%d pts" % int(l[pos].pontos) if tem else "", l[pos].data if tem else ""]
+		for texto in celulas:
+			tabela.add_child(UI.label(texto, 24, cor, 4))
+	if l.is_empty():
+		_titulo(caixa, "Ninguém no ranking ainda: vença a fase para entrar.", 18, Config.COR_CINZA_CLARO)
+	var rodape := _linha_botoes(caixa)
+	_botao(rodape, "VOLTAR", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 220, func() -> void: voltar_campanha.emit())
+
+
+## Quadro de conquistas do save em uso.
+func mostrar_conquistas() -> void:
+	var caixa := _base(0.85)
+	var feitas := Conquistas.desbloqueadas()
+	_titulo(caixa, "CONQUISTAS", 56, Config.COR_AMARELO)
+	_titulo(caixa, "%d de %d  ·  SAVE %d" % [feitas.size(), Conquistas.LISTA.size(), Progresso.slot], 20,
+		Config.COR_CINZA_CLARO)
+	var grade := GridContainer.new()
+	grade.columns = 4
+	grade.add_theme_constant_override("h_separation", 12)
+	grade.add_theme_constant_override("v_separation", 12)
+	grade.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	caixa.add_child(grade)
+	for c in Conquistas.LISTA:
+		var ok: bool = c.id in feitas
+		var cartao := PanelContainer.new()
+		cartao.custom_minimum_size = Vector2(270, 96)
+		cartao.add_theme_stylebox_override("panel",
+			UI.estilo(Config.COR_AMARELO if ok else Config.COR_CINZA_ESCURO, Config.COR_PRETO))
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		cartao.add_child(col)
+		var nome := UI.label(("★ " if ok else "") + c.nome, 18, Config.COR_PRETO if ok else Config.COR_PAPEL, 0)
+		col.add_child(nome)
+		var desc := UI.label(c.descricao, 13, Config.COR_CINZA_ESCURO if ok else Config.COR_CINZA_CLARO, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.custom_minimum_size = Vector2(246, 0)
+		col.add_child(desc)
+		grade.add_child(cartao)
+	var rodape := _linha_botoes(caixa)
+	_botao(rodape, "VOLTAR", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 220, func() -> void: voltar_capitulos.emit())
+
+
+## Aviso de conquista nova no canto da tela (por cima de qualquer tela, inclusive na partida).
+func anunciar_conquista(nome: String, descricao: String) -> void:
+	var pilha: VBoxContainer = get_node_or_null("Avisos")
+	if pilha == null:
+		pilha = VBoxContainer.new()
+		pilha.name = "Avisos"
+		pilha.add_theme_constant_override("separation", 8)
+		pilha.position = Vector2(get_viewport().get_visible_rect().size.x - 376.0, 16.0)
+		pilha.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(pilha)
+	var cartao := PanelContainer.new()
+	cartao.custom_minimum_size = Vector2(360, 0)
+	cartao.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cartao.add_theme_stylebox_override("panel", UI.estilo(Config.COR_AMARELO, Config.COR_PRETO))
+	var col := VBoxContainer.new()
+	cartao.add_child(col)
+	col.add_child(UI.label("★ CONQUISTA: " + nome, 18, Config.COR_PRETO, 0))
+	var d := UI.label(descricao, 13, Config.COR_CINZA_ESCURO, 0)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.custom_minimum_size = Vector2(336, 0)
+	col.add_child(d)
+	pilha.add_child(cartao)
+	move_child(pilha, get_child_count() - 1)
+	cartao.modulate.a = 0.0
+	var t := cartao.create_tween()
+	t.tween_property(cartao, "modulate:a", 1.0, 0.25)
+	t.tween_interval(3.2)
+	t.tween_property(cartao, "modulate:a", 0.0, 0.4)
+	t.tween_callback(cartao.queue_free)
 
 
 ## Pausa: o jogo fica congelado por trás (relógio, prazo, gasolina e CET param).

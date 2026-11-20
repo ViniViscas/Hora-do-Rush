@@ -21,6 +21,7 @@ const Progresso := preload("res://src/progresso.gd")
 const Som := preload("res://src/som.gd")
 const Efeitos := preload("res://src/efeitos.gd")
 const Historia := preload("res://src/historia.gd")
+const Conquistas := preload("res://src/conquistas.gd")
 
 const LARGURA_FASE := Gerador.LARGURA
 const PX_POR_METRO := 16.0
@@ -79,6 +80,7 @@ var efeitos  # Efeitos
 var _olhar := 0.0           # câmera olhando à frente do movimento
 var _tremor := 0.0          # segundos de tremor restantes
 var _tremor_forca := 0.0
+var quedas := 0             # tombos na fase (conquista "Liso")
 
 
 func _ready() -> void:
@@ -207,6 +209,10 @@ func _criar_mundo() -> void:
 	obst.construir(chao, rng, fase)
 	obst.aviso.connect(func(t: String, c: Color) -> void: hud.aviso(t, c))
 	obst.placar.connect(_on_placar)
+	obst.evento.connect(func(nome: String) -> void:
+		var por_evento := {"pouso_perfeito": "pouso", "fuga_cet": "cet", "blitz_embalado": "blitz"}
+		if por_evento.has(nome):
+			_conquista(por_evento[nome]))
 
 	for o in fase.blocos:
 		var b := Bloco.new()
@@ -291,6 +297,7 @@ func _criar_moto() -> void:
 		if forca > 0.6:
 			tremer(3.0 + 5.0 * forca, 0.2))
 	moto.derrubada.connect(func() -> void:
+		quedas += 1
 		efeitos.faiscas(moto.position + Vector2(0, -12))
 		tremer(10.0, 0.4))
 
@@ -334,7 +341,17 @@ func _criar_ui() -> void:
 	telas.comprar.connect(func(melhoria: String) -> void:
 		var ok := Progresso.comprar(dif_id, prog, melhoria)
 		Som.tocar("compra" if ok else "erro")
-		telas.reagir_compra(melhoria, ok, prog))
+		telas.reagir_compra(melhoria, ok, prog)
+		if ok:
+			_conquista("melhoria")
+			var no_maximo := true
+			for m in prog.niveis:
+				no_maximo = no_maximo and prog.niveis[m] >= Config.PRECOS_MELHORIA.size()
+			if no_maximo:
+				_conquista("talo"))
+	telas.ver_conquistas.connect(func() -> void: telas.mostrar_conquistas())
+	telas.voltar_capitulos.connect(func() -> void: telas.mostrar_menu(_bags_bloqueadas()))
+	telas.ver_ranking.connect(func() -> void: telas.mostrar_ranking(Config.DIFICULDADES[dif_id], dif_id))
 	telas.voltar_campanha.connect(func() -> void: telas.mostrar_campanha(Config.DIFICULDADES[dif_id], prog))
 	telas.voltar_menu.connect(func() -> void:
 		get_tree().paused = false
@@ -347,6 +364,7 @@ func _criar_ui() -> void:
 		else:
 			Progresso.usar(n)
 		prog = {}
+		Conquistas.conferir_progresso()
 		telas.mostrar_menu(_bags_bloqueadas()))
 	telas.apagar_save.connect(func(n: int) -> void:
 		Progresso.apagar(n)
@@ -385,6 +403,7 @@ func _iniciar(id: String, indice_fase: int) -> void:
 	tempo_restante = dif.tempo_fase * def_fase.tempo * meta_entregas / 5.0
 	pontos = 0
 	entregas = 0
+	quedas = 0
 	gasolina = Config.GASOLINA_INICIAL / Config.GASOLINA_MAX * gas_max
 
 	# Postos em posições aleatórias a cada partida; a vaga vazia vira outra construção.
@@ -481,6 +500,7 @@ func _on_codigo_certo() -> void:
 		hud.aviso("Entregue atrasado... +%d pts" % ganho, Config.COR_CINZA_CLARO)
 	pontos += ganho
 	entregas += 1
+	_conquista("primeira_entrega")
 	var acima: Vector2 = casa_atual.position + Vector2(0, -110)
 	efeitos.confete(acima)
 	efeitos.texto(acima + Vector2(0, -40), "+%d" % ganho, Config.COR_LARANJA_CLARO, 30)
@@ -498,6 +518,14 @@ func _on_codigo_errado() -> void:
 	Som.tocar("erro")
 	pontos = maxi(0, pontos - Config.PENALIDADE_CODIGO)
 	hud.aviso("Código errado! -%d pts" % Config.PENALIDADE_CODIGO, Config.COR_VERMELHO)
+
+
+## Desbloqueia a conquista e, se for nova, mostra o aviso no canto da tela.
+func _conquista(id: String) -> void:
+	if Conquistas.desbloquear(id):
+		var c := Conquistas.info(id)
+		telas.anunciar_conquista(c.nome, c.descricao)
+		Som.tocar("perfeito", -3.0, 1.2)
 
 
 ## Abertura do capítulo da bag escolhida (história). Depois vai para as fases.
@@ -574,6 +602,15 @@ func _fim(vitoria: bool, mensagem: String, imagem: String = "") -> void:
 		prog.recordes[n_fase] = maxi(prog.recordes[n_fase], pontos)
 		prog.liberada = maxi(prog.liberada, mini(n_fase + 1, Config.FASES.size() - 1))
 	Progresso.salvar(dif_id, prog)
+	if vitoria:
+		_conquista("turno")
+		if quedas == 0:
+			_conquista("liso")
+		if gasolina < gas_max * 0.1:
+			_conquista("reserva")
+		if n_fase == Config.FASES.size() - 1:
+			_conquista("cap_" + dif_id)
+	var ranking := {"dif_id": dif_id, "fase": n_fase, "pontos": pontos} if vitoria else {}
 
 	var linhas := "Entregas: %d/%d     Pontos: %d" % [entregas, meta_entregas, pontos]
 	if vitoria:
@@ -587,9 +624,11 @@ func _fim(vitoria: bool, mensagem: String, imagem: String = "") -> void:
 		# Fechou a campanha: final da história e, depois, a tela de fim com a casa no fundo
 		titulo = "%s FECHADO!" % Historia.CAPITULOS[dif_id].titulo.split(":")[0]
 		telas.mostrar_cutscene(Historia.final(dif_id), func() -> void:
-			telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(Historia.fundo_final(dif_id))))
+			telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(Historia.fundo_final(dif_id)),
+				ranking))
 		return
-	telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(imagem) if imagem != "" else "")
+	telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(imagem) if imagem != "" else "",
+		ranking)
 
 
 # ---------------------------------------------------------------- loop
