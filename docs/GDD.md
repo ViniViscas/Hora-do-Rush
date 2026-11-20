@@ -131,7 +131,7 @@ A dificuldade é escolhida pela **bag** do entregador:
 Nomes escolhidos pelo grupo. As bags usam só as **cores** dos apps reais, com desenho próprio (sem copiar logo).
 
 ### Modos especiais
-- **Final de semana:** mais entregas, menos tempo.
+- **Final de semana:** mais entregas, menos tempo. ✅ Feito como fase extra de cada capítulo (liberada ao fechar a campanha da bag): mapa **gerado de novo a cada tentativa**, 8 entregas, tempo ×0,88, chuva ×1,5, CET ×1,3, blitz ×1,5, pagamento ×1,3, recorde e ranking próprios (`Config.FINAL_DE_SEMANA`). Testes com o bot: vence nas três bags; no Kitreta com a moto completa sobram ~60 s.
 - **Domingueiros (Ultra Hard):** exige desempenho quase perfeito; ruas cheias de "domingueiros" atrapalhando.
 
 > ✅ **Marcas reais → paródia** (decidido): as bags viraram iFudê, 99 Problemas e Kitreta.
@@ -238,6 +238,8 @@ Cada melhoria tem **3 níveis**, a **R$ 100, R$ 200 e R$ 300** (R$ 3.000 para a 
 - **A moto é uma só:** melhorias e dinheiro são compartilhados entre os três capítulos (seção "moto" do save). Fases, recordes e mapas continuam separados por capítulo.
 - **Conquistas (12, por save):** Primeira entrega, Turno fechado, Liso (vencer sem cair), Asa delta (pouso perfeito), Fugiu da CET, Passou batido (blitz embalado sem ser parado), No vapor (vencer com menos de 10% de gasolina), Investimento (primeira melhoria), Moto no talo (tudo no máximo) e uma por capítulo fechado (A casa, A reforma, A oficina). Aparece um aviso no canto da tela na hora; o quadro completo fica no botão **Conquistas** do menu de capítulos.
 - **Ranking local:** os 5 melhores resultados de cada fase de cada capítulo, com nome e data. Ao vencer uma fase com pontos para entrar no ranking, o jogo pede o nome na tela de fim. O ranking é do computador (vale para todos os saves) e fica no botão **Ranking** da tela de fases.
+- **Tutorial:** na fase 1 do iFudê (até ela ser vencida), a Tati dá dicas num balão na hora certa: controles, coleta, prazo, lombada, boca de lobo, código do cliente e gasolina (`src/dica_tati.gd`).
+- **Créditos:** rolam depois do final do capítulo 3 e pelo botão na tela inicial (`src/creditos.gd`).
 - **Saves:** 3 espaços independentes, escolhidos na tela inicial (**Nova campanha** / **Carregar campanha**). Nova campanha num espaço ocupado pede confirmação e reseta tudo; dá para apagar um save na tela de carregar. O salvamento é automático (fim de fase, compra, cutscene vista).
 - **Curva pretendida:** as melhorias são caras para a moto ir sendo melhorada aos poucos. Ela termina o capítulo 1 com algumas melhorias de nível 1, melhora bastante no capítulo 2 e chega ao capítulo 3 perto do máximo, que é praticamente obrigatório no Kitreta.
 - 💡 **Upgrade da bag (capacidade):** carregar mais de um pedido ao mesmo tempo ficou para depois, porque muda o loop de pedidos.
@@ -292,6 +294,6 @@ Cada melhoria tem **3 níveis**, a **R$ 100, R$ 200 e R$ 300** (R$ 3.000 para a 
 | **M1 — Protótipo do núcleo** ✅ | Moto (aceleração, freio, pulo), uma fase, restaurante → cliente, prazo + relógio + bônus, gasolina + posto, código no portão, pontuação, HUD, game over/vitória |
 | **M2 — Obstáculos** ✅ | Lombada, boca de lobo, estrada de terra, cruzamento, blitz, chuva, CET, ciclovia, mapa maior |
 | **M2.5 — Mapa procedural** ✅ | Rua gerada por semente, com regras de distância entre obstáculos |
-| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), ~~várias fases~~ (campanha de 5 fases), ~~pausa e volta ao menu~~, modos final de semana/domingueiros |
+| **M3 — Estrutura de jogo** | ~~Menu, escolha da bag (dificuldade)~~ (feito no M1), ~~várias fases~~ (campanha de 5 fases), ~~pausa e volta ao menu~~, ~~modo final de semana~~, modo domingueiros |
 | **M4 — Progressão** ✅ | ~~Oficina de upgrades~~ (dinheiro + 5 melhorias), ~~conquistas~~ (12, por save), ~~ranking local~~ (5 melhores por fase) |
 | **M5 — Arte e polimento** | ~~Texturas sujas~~, ~~animações e efeitos~~, ~~som~~ (sintetizado por código), ~~fonte pixelada~~, easter eggs. Sprites: descartados, a arte fica desenhada por código |

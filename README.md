@@ -27,6 +27,15 @@ A história do motoboy Felipe e da mecânica Tati é contada em **três capítul
 
 O design completo está em [`docs/GDD.md`](docs/GDD.md).
 
+| | |
+|---|---|
+| ![Tela inicial](docs/img/01_tela_inicial.jpg) | ![Partida na chuva, com a CET na cola](docs/img/02_partida.jpg) |
+| *Tela inicial: nova campanha, carregar e créditos* | *Partida: chuva, CET na cola, prazo e gasolina no HUD* |
+| ![Tutorial da Tati](docs/img/03_tutorial.jpg) | ![Oficina da Tati](docs/img/04_oficina.jpg) |
+| *Tutorial: a Tati explica cada coisa na hora certa* | *Oficina: melhorias da moto, com a Tati comentando* |
+| ![Cutscene da história](docs/img/05_cutscene.jpg) | ![Conquistas](docs/img/06_conquistas.jpg) |
+| *Cutscenes contam a história entre os capítulos* | *12 conquistas por save* |
+
 ## Como rodar
 
 Há três jeitos: baixar o executável pronto (Windows), instalar o APK (Android) ou rodar pelo código-fonte com o Godot.
@@ -66,7 +75,7 @@ Pelo terminal, de dentro da pasta do projeto: `godot --path .` (se o Godot foi i
 3. Assista à abertura da história (`Espaço` avança, `Esc` pula).
 4. Na tela de fases, escolha a **fase 1**. Pegue o pedido no restaurante indicado pela seta, entregue na casa e digite o código que o cliente mostrar.
 5. Com o dinheiro dos turnos, compre melhorias na **oficina** da Tati.
-6. Feche as 5 fases para terminar o capítulo e liberar o próximo.
+6. Feche as 5 fases para terminar o capítulo e liberar o próximo (e o modo **Final de semana** daquela bag).
 
 ## Controles
 
@@ -174,8 +183,10 @@ Pegar o pedido no restaurante → Atravessar a rua (obstáculos, gasolina) → P
 - No fim da fase vem o **acerto do turno**: vencendo, R$ 1 a cada 10 pontos; perdendo, só R$ 8 por entrega feita. Apps mais exigentes pagam mais: **×1,8 no 99 Problemas** e **×2,5 no Kitreta**.
 - Na **oficina** o dinheiro compra melhorias para a moto, com 3 níveis cada: **motor**, **freio**, **tanque**, **amortecedor** e **bag térmica**.
 - A moto é **a mesma nos três capítulos**: as melhorias e o dinheiro passam de um capítulo para o outro. As melhorias são caras (R$ 100, 200 e 300 por nível; R$ 3.000 para a moto completa), então a moto vai sendo melhorada aos poucos, e o capítulo 3 (Kitreta) praticamente exige ela quase no máximo.
+- **Modo Final de semana:** fase extra de cada capítulo, liberada ao fechar a campanha daquela bag. A rua é **gerada de novo a cada tentativa** (nunca dá para decorar o mapa), com 8 entregas, menos tempo e mais chuva, CET e blitz. O plantão paga 30% a mais e tem recorde e ranking próprios.
+- **Tutorial:** na fase 1 do iFudê, enquanto ela não for vencida, a Tati aparece num balão embaixo da tela explicando os controles, a coleta, o prazo, a lombada, a boca de lobo, o código do cliente e a gasolina, cada coisa na hora em que ela acontece.
 - **Conquistas (12, por save):** Primeira entrega, Turno fechado, Liso (vencer sem cair), Asa delta (pouso perfeito), Fugiu da CET, Passou batido (blitz embalado sem ser parado), No vapor (vencer com menos de 10% de gasolina), Investimento (primeira melhoria), Moto no talo (tudo no máximo) e uma por capítulo fechado (A casa, A reforma, A oficina). Aparece um aviso no canto da tela na hora; o quadro completo fica no botão **Conquistas** do menu de capítulos.
-- **Ranking local:** os 5 melhores resultados de cada fase de cada capítulo, com nome e data. Ao vencer uma fase com pontos para entrar no ranking, o jogo pede o nome na tela de fim. O ranking é do computador (vale para todos os saves) e fica no botão **Ranking** da tela de fases.
+- **Ranking local:** os 5 melhores resultados de cada fase de cada capítulo, com nome e data. O Final de semana tem o seu próprio ranking. Ao vencer uma fase com pontos para entrar no ranking, o jogo pede o nome na tela de fim. O ranking é do computador (vale para todos os saves) e fica no botão **Ranking** da tela de fases.
 - **Salvamento:** há **3 espaços de save**, cada um com uma campanha independente. O jogo salva sozinho ao fim de cada fase, a cada compra na oficina e a cada cutscene vista.
   - **Nova campanha** num espaço ocupado pede confirmação e começa do zero (é assim que se reseta uma campanha).
   - **Carregar campanha** mostra o resumo de cada save (capítulo e fase atuais, fases vencidas, dinheiro e data) e tem o botão **Apagar**.
@@ -228,16 +239,20 @@ src/
   code_popup.gd        balão do cliente com teclado numérico
   code_display.gd      números "quebradiços" do código
   screens.gd           tela inicial, saves, menu de capítulos, fases, conquistas, ranking, pausa e fim
+  dica_tati.gd         tutorial: balão da Tati com as dicas da primeira fase
+  creditos.gd          créditos rolando (fim do capítulo 3 e botão na tela inicial)
   tela_oficina.gd      oficina: fundo, a mecânica Tati comentando as melhorias e o painel de compra
   personagem.gd        mecânica e entregador em pixel art desenhada por código
   historia.gd          roteiro das cutscenes (falas e imagens de cada cena)
   cutscene.gd          exibição das cutscenes: imagem, caixa de texto, avançar e pular
   touch_controls.gd    botões de toque para celular
   ui_util.gd           helpers de interface
+assets/icone.png       ícone do jogo (pixel art, gerado por código) + icone.ico para o Windows
 assets/fontes/         fonte pixelada Silkscreen Bold + licença (OFL.txt)
 assets/img/            fundo da oficina e imagens das cutscenes (cutscenes/), geradas com IA
                        (não há assets/sons/: todos os sons são gerados por código em src/som.gd)
 docs/GDD.md            documento de design
+docs/img/              imagens do jogo usadas neste README
 ```
 
 O cenário, a moto, os obstáculos e os personagens da oficina são desenhados por código. As únicas imagens são as cutscenes e o fundo da oficina.
@@ -264,9 +279,9 @@ Sai um único `HoraDoRush.exe` (o jogo vai embutido), que roda sem instalar nada
 - **M1 (núcleo):** moto, coleta → entrega, prazo com bônus de tempo, gasolina com postos aleatórios, código no portão, pontuação, 3 dificuldades (bags), suporte a toque.
 - **M2 (obstáculos):** lombada e boca de lobo com equilíbrio no ar, estrada de terra, ciclovia, cruzamento com semáforo, blitz, chuva, perseguição da CET e mapa com o dobro do tamanho.
 - **M2.5 (mapa procedural):** a rua é gerada a cada partida, com distâncias mínimas entre os obstáculos.
-- **M3 (parcial):** campanha de 5 fases em sequência por bag, com densidade de obstáculos crescente; pausa e volta ao menu; história em três capítulos com cutscenes. Faltam os modos Final de semana e Domingueiros.
+- **M3 (parcial):** campanha de 5 fases em sequência por bag, com densidade de obstáculos crescente; pausa e volta ao menu; história em três capítulos com cutscenes; modo Final de semana (mapa novo a cada tentativa); tutorial da Tati na primeira fase; créditos no fim da história. Falta o modo Domingueiros.
 - **M4 (progressão):** dinheiro por fase e oficina da Tati, com 5 melhorias de 3 níveis e falas que reagem às compras; 12 conquistas e ranking local por fase.
-- **M5 (parcial):** som e trilhas sintetizados por código, fonte pixelada, texturas "sujas", animações e feedback visual. Faltam os easter eggs.
+- **M5 (parcial):** som e trilhas sintetizados por código, fonte pixelada, texturas "sujas", animações e feedback visual; ícone do jogo em pixel art (`assets/icone.png`). Faltam os easter eggs.
 
 ## Divisão de tarefas
 

@@ -22,6 +22,7 @@ const Som := preload("res://src/som.gd")
 const Efeitos := preload("res://src/efeitos.gd")
 const Historia := preload("res://src/historia.gd")
 const Conquistas := preload("res://src/conquistas.gd")
+const DicaTati := preload("res://src/dica_tati.gd")
 
 const LARGURA_FASE := Gerador.LARGURA
 const PX_POR_METRO := 16.0
@@ -81,6 +82,9 @@ var _olhar := 0.0           # câmera olhando à frente do movimento
 var _tremor := 0.0          # segundos de tremor restantes
 var _tremor_forca := 0.0
 var quedas := 0             # tombos na fase (conquista "Liso")
+var dica  # DicaTati: tutorial da primeira fase
+var _tutorial := false      # ligado na fase 1 do iFudê até ela ser vencida uma vez
+var _dicas_ditas := {}
 
 
 func _ready() -> void:
@@ -94,8 +98,9 @@ func _ready() -> void:
 		dif_id = jogar
 		n_fase = fase_pendente
 		prog = Progresso.carregar(dif_id)
-		fase = Gerador.new().gerar(_escolher_semente(prog.sementes[n_fase]),
-			Config.FASES[n_fase].quantidade)
+		# Final de semana: mapa novo a cada tentativa; na campanha, o mapa fixo da fase
+		var semente: int = rng.randi_range(1, 999999) if n_fase == Config.FASE_FDS else prog.sementes[n_fase]
+		fase = Gerador.new().gerar(_escolher_semente(semente), Config.def_fase(n_fase).quantidade)
 	else:
 		fase = Gerador.new().gerar(_escolher_semente(rng.randi_range(1, 999999)))
 	_criar_fundo()
@@ -105,7 +110,7 @@ func _ready() -> void:
 	if jogar != "":
 		# Cartão da história antes da fase, só na primeira vez que ela é jogada
 		var chave := "fase_%s_%d" % [jogar, n_fase]
-		if Progresso.visto(chave):
+		if n_fase == Config.FASE_FDS or Progresso.visto(chave):
 			_iniciar(jogar, n_fase)
 		else:
 			Som.musica("menu")
@@ -321,6 +326,8 @@ func _criar_ui() -> void:
 	popup.acertou.connect(_on_codigo_certo)
 	popup.errou.connect(_on_codigo_errado)
 	add_child(Toque.new())
+	dica = DicaTati.new()
+	add_child(dica)
 	telas = Telas.new()
 	add_child(telas)
 	telas.escolher_bag.connect(func(id: String) -> void:
@@ -384,7 +391,7 @@ func _criar_ui() -> void:
 func _iniciar(id: String, indice_fase: int) -> void:
 	dif_id = id
 	n_fase = indice_fase
-	def_fase = Config.FASES[n_fase]
+	def_fase = Config.def_fase(n_fase)
 	# A fase ajusta as chances da bag (ex.: fase 1 sem blitz, sem chuva, sem CET)
 	dif = Config.DIFICULDADES[id].duplicate()
 	dif.chance_chuva = minf(1.0, dif.chance_chuva * def_fase.chuva)
@@ -419,9 +426,13 @@ func _iniciar(id: String, indice_fase: int) -> void:
 	chuva.visible = obst.chovendo
 
 	estado = Estado.JOGANDO
+	_tutorial = id == "facil" and n_fase == 0 and prog.recordes[0] == 0   # até vencer a fase 1
+	_dicas_ditas = {}
+	_dica("inicio", "Primeiro turno! A/D ou as setas pilotam, S ou Shift freia. "
+		+ "A seta na tela aponta o restaurante do pedido.")
 	Som.musica("partida_" + id)
 	_novo_pedido()
-	var msg := "FASE %d: %s\n%d entregas até o fim do rush." % [n_fase + 1, def_fase.nome, meta_entregas]
+	var msg := "%s\n%d entregas até o fim do rush." % [_nome_fase().to_upper(), meta_entregas]
 	if obst.chovendo:
 		msg += "\nTá chovendo: o freio tá fraco!"
 	hud.aviso(msg, Config.COR_LARANJA_CLARO)
@@ -469,6 +480,8 @@ func _coletar() -> void:
 	Som.tocar("coleta")
 	efeitos.confete(restaurante_atual.position + Vector2(0, -150), [Config.COR_LARANJA, Config.COR_PAPEL])
 	hud.aviso("Pedido na bag! Entregar no Nº %s" % casa_atual.nome, Config.COR_LARANJA_CLARO)
+	_dica("prazo", "Pedido na bag! Leva até a casa. A barra lá em cima é o prazo: "
+		+ "chegando antes, você ganha tempo extra no turno.")
 
 
 func _atualizar_destaques() -> void:
@@ -520,6 +533,37 @@ func _on_codigo_errado() -> void:
 	hud.aviso("Código errado! -%d pts" % Config.PENALIDADE_CODIGO, Config.COR_VERMELHO)
 
 
+## Tutorial: cada fala aparece uma vez por partida, só enquanto o tutorial está ligado.
+func _dica(id: String, texto: String) -> void:
+	if not _tutorial or _dicas_ditas.has(id):
+		return
+	_dicas_ditas[id] = true
+	dica.dizer(texto)
+
+
+## Dicas que dependem de onde a moto está: obstáculo chegando e gasolina baixa.
+func _dicas_do_caminho() -> void:
+	var x: float = moto.position.x
+	var dir := float(moto.direcao)
+	for l in obst.lombadas:
+		var d: float = (l.cx() - x) * dir
+		if d > 0.0 and d < 500.0:
+			_dica("lombada", "Lombada! Embala, e no ar usa A/D para deixar a moto reta e pousar de pé.")
+	for b in obst.bocas:
+		var d: float = (b.cx() - x) * dir
+		if d > 0.0 and d < 450.0:
+			_dica("boca", "Boca de lobo! Pula com Espaço (ou W) para passar por cima, ou atravessa embalado.")
+	if gasolina < gas_max * 0.4:
+		_dica("gasolina", "A gasolina tá baixando. Para em cima de um posto e espera o tanque encher.")
+
+
+## "Fase 3: Sexta à noite" ou "Final de semana".
+func _nome_fase() -> String:
+	if n_fase == Config.FASE_FDS:
+		return def_fase.nome
+	return "Fase %d: %s" % [n_fase + 1, def_fase.nome]
+
+
 ## Desbloqueia a conquista e, se for nova, mostra o aviso no canto da tela.
 func _conquista(id: String) -> void:
 	if Conquistas.desbloquear(id):
@@ -559,7 +603,7 @@ func _alternar_pausa() -> void:
 		Som.parar_loops()
 		Som.abafar(true)
 		Som.tocar("clique")
-		telas.mostrar_pausa(n_fase, def_fase.nome)
+		telas.mostrar_pausa(n_fase, _nome_fase())
 	else:
 		Som.abafar(estado == Estado.CODIGO)
 		telas.limpar()
@@ -595,13 +639,18 @@ func _fim(vitoria: bool, mensagem: String, imagem: String = "") -> void:
 	# Acerto do turno: vencendo, recebe pelos pontos; perdendo, só a taxa das entregas feitas.
 	# Apps mais exigentes pagam mais (multiplicador "pagamento" da bag).
 	var base := float(pontos) / Config.PONTOS_POR_REAL if vitoria else float(entregas * Config.REAIS_POR_ENTREGA)
-	var pagamento := int(base * dif.pagamento)
+	var pagamento := int(base * dif.pagamento * def_fase.get("pagamento", 1.0))
 	prog.dinheiro += pagamento
-	var recorde: bool = vitoria and pontos > prog.recordes[n_fase]
-	if vitoria:
+	var fds := n_fase == Config.FASE_FDS
+	var recorde_antes: int = prog.recorde_fds if fds else prog.recordes[n_fase]
+	var recorde: bool = vitoria and pontos > recorde_antes
+	if vitoria and fds:
+		prog.recorde_fds = maxi(prog.recorde_fds, pontos)
+	elif vitoria:
 		prog.recordes[n_fase] = maxi(prog.recordes[n_fase], pontos)
 		prog.liberada = maxi(prog.liberada, mini(n_fase + 1, Config.FASES.size() - 1))
 	Progresso.salvar(dif_id, prog)
+	dica.calar()
 	if vitoria:
 		_conquista("turno")
 		if quedas == 0:
@@ -616,16 +665,22 @@ func _fim(vitoria: bool, mensagem: String, imagem: String = "") -> void:
 	if vitoria:
 		linhas += "\n(inclui +%d pelo tempo que sobrou)%s" % [bonus, "   NOVO RECORDE!" if recorde else ""]
 	linhas += "\nAcerto do turno: R$ %d     Saldo: R$ %d" % [pagamento, prog.dinheiro]
-	linhas += "\nFase %d: %s     Bag: %s     Mapa nº %d" % [n_fase + 1, def_fase.nome, dif.nome, fase.semente]
+	linhas += "\n%s     Bag: %s     Mapa nº %d" % [_nome_fase(), dif.nome, fase.semente]
 	var titulo := "GAME OVER"
 	if vitoria:
-		titulo = "CAMPANHA FECHADA!" if n_fase == Config.FASES.size() - 1 else "TURNO FECHADO!"
+		titulo = "PLANTÃO FECHADO!" if fds else "TURNO FECHADO!"
 	if vitoria and n_fase == Config.FASES.size() - 1:
 		# Fechou a campanha: final da história e, depois, a tela de fim com a casa no fundo
 		titulo = "%s FECHADO!" % Historia.CAPITULOS[dif_id].titulo.split(":")[0]
-		telas.mostrar_cutscene(Historia.final(dif_id), func() -> void:
+		var tela_fim := func() -> void:
 			telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(Historia.fundo_final(dif_id)),
-				ranking))
+				ranking)
+		telas.mostrar_cutscene(Historia.final(dif_id), func() -> void:
+			# Fim da história (capítulo 3): créditos antes da tela de fim
+			if Historia.ORDEM.find(dif_id) == Historia.ORDEM.size() - 1:
+				telas.mostrar_creditos(tela_fim)
+			else:
+				tela_fim.call())
 		return
 	telas.mostrar_fim(vitoria, titulo, mensagem, linhas, n_fase, Historia.caminho(imagem) if imagem != "" else "",
 		ranking)
@@ -651,6 +706,8 @@ func _process(delta: float) -> void:
 				Historia.FUNDO_TEMPO)
 		elif estado == Estado.JOGANDO:
 			_interacoes(delta)
+			if _tutorial:
+				_dicas_do_caminho()
 
 	# Câmera olha um pouco à frente do movimento
 	_olhar = lerpf(_olhar, clampf(moto.velocity.x * 0.4, -220.0, 220.0), 2.0 * delta)
@@ -717,6 +774,7 @@ func _interacoes(delta: float) -> void:
 		Etapa.IR_RESTAURANTE:
 			if parado and _moto_em(restaurante_atual):
 				etapa = Etapa.COLETANDO
+				_dica("coleta", "Isso! Fica parado aí até a barra encher. Se sair antes, o pedido não vem.")
 				progresso = 0.0
 				espera_total = 1.5
 				restaurante_atual.texto_progresso = "Pegando o pedido..."
@@ -737,6 +795,8 @@ func _interacoes(delta: float) -> void:
 		Etapa.IR_CLIENTE:
 			if parado and _moto_em(casa_atual):
 				etapa = Etapa.ESPERANDO_CLIENTE
+				_dica("cliente", "Chegou! Espera o cliente descer e digita o código que ele mostrar. "
+					+ "Errar o código custa pontos.")
 				progresso = 0.0
 				espera_total = rng.randf_range(0.6, 1.2)
 				casa_atual.texto_progresso = "Chamando o cliente..."

@@ -127,6 +127,7 @@ static func carregar(dif_id: String) -> Dictionary:
 		"niveis": cfg.get_value("moto", "niveis", cfg.get_value(dif_id, "niveis", {})),
 		"recordes": cfg.get_value(dif_id, "recordes", []),
 		"sementes": cfg.get_value(dif_id, "sementes", []),
+		"recorde_fds": cfg.get_value(dif_id, "recorde_fds", 0),   # modo Final de semana
 	}
 	for id in Config.MELHORIAS:
 		if not p.niveis.has(id):

@@ -137,6 +137,27 @@ const FASES := [
 	},
 ]
 
+# --- Modo Final de semana ---
+# Fase extra de cada capítulo, liberada ao fechar a campanha da bag. Mapa novo a cada
+# tentativa (semente sorteada), mais entregas, menos tempo e mais perigo; paga mais
+# (plantão de fim de semana). Usa o índice FASE_FDS logo depois das fases da campanha.
+const FASE_FDS := 5
+const FINAL_DE_SEMANA := {
+	"nome": "Final de semana",
+	"descricao": "Mapa novo a cada vez, 8 entregas e pouco tempo. O plantão paga mais.",
+	"entregas": 8,
+	"tempo": 0.88,
+	"quantidade": {"lombada": [4, 6], "boca": [4, 6], "terra": [1, 3], "cruzamento": [2, 3], "blitz": [1, 2]},
+	"chuva": 1.5, "cet": 1.3, "blitz": 1.5,
+	"pagamento": 1.3,
+}
+
+
+## Definição da fase pelo índice: as da campanha ou o Final de semana.
+static func def_fase(i: int) -> Dictionary:
+	return FINAL_DE_SEMANA if i == FASE_FDS else FASES[i]
+
+
 # --- Capítulos da história ---
 # true: cada bag (capítulo) só é liberada depois de fechar a campanha da anterior
 # (iFudê -> 99 Problemas -> Kitreta). false: as três bags ficam livres desde o início.

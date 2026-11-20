@@ -23,6 +23,7 @@ const Config := preload("res://src/game_config.gd")
 const UI := preload("res://src/ui_util.gd")
 const TelaOficina := preload("res://src/tela_oficina.gd")
 const Cutscene := preload("res://src/cutscene.gd")
+const Creditos := preload("res://src/creditos.gd")
 const Historia := preload("res://src/historia.gd")
 const Progresso := preload("res://src/progresso.gd")
 const Conquistas := preload("res://src/conquistas.gd")
@@ -93,6 +94,10 @@ func mostrar_inicio() -> void:
 	carregar.add_theme_color_override("font_disabled_color", Config.COR_CINZA_CLARO)
 	carregar.pressed.connect(func() -> void: mostrar_saves(false))
 	coluna.add_child(carregar)
+	var creditos: Button = UI.botao("CRÉDITOS", Config.COR_CINZA_ESCURO, Config.COR_PAPEL, 20)
+	creditos.custom_minimum_size = Vector2(420, 52)
+	creditos.pressed.connect(func() -> void: mostrar_creditos(mostrar_inicio))
+	coluna.add_child(creditos)
 	if carregar.disabled:
 		_titulo(caixa, "Nenhuma campanha salva ainda.", 15, Config.COR_CINZA_CLARO)
 
@@ -271,6 +276,25 @@ func mostrar_campanha(d: Dictionary, p: Dictionary) -> void:
 		b.pressed.connect(func() -> void: jogar_fase.emit(i))
 		lista.add_child(b)
 
+	# Modo Final de semana: liberado ao fechar a campanha da bag
+	var fds: Dictionary = Config.FINAL_DE_SEMANA
+	var livre: bool = p.recordes[Config.FASES.size() - 1] > 0
+	var texto_fds := "FINAL DE SEMANA  ·  %d entregas  ·  mapa novo a cada vez" % fds.entregas
+	if not livre:
+		texto_fds += "\nFeche a campanha (fase 5) para liberar"
+	elif p.recorde_fds > 0:
+		texto_fds += "\nO plantão paga mais.   Recorde: %d pts" % p.recorde_fds
+	else:
+		texto_fds += "\nPouco tempo e mais perigo. O plantão paga mais."
+	var cor_fds: Color = Config.COR_VERMELHO if livre else Config.COR_CINZA_ESCURO
+	var bf: Button = UI.botao(texto_fds, cor_fds, Config.COR_PAPEL if livre else Config.COR_CINZA_CLARO, 16)
+	bf.custom_minimum_size = Vector2(760, 66)
+	bf.disabled = not livre
+	bf.add_theme_stylebox_override("disabled", UI.estilo(cor_fds))
+	bf.add_theme_color_override("font_disabled_color", Config.COR_CINZA_CLARO)
+	bf.pressed.connect(func() -> void: jogar_fase.emit(Config.FASE_FDS))
+	lista.add_child(bf)
+
 	var linha := _linha_botoes(caixa)
 	_botao(linha, "OFICINA", Config.COR_AMARELO, Config.COR_PRETO, 200, func() -> void: abrir_oficina.emit())
 	_botao(linha, "HISTÓRIA", Config.COR_LARANJA_CLARO, Config.COR_PRETO, 200, func() -> void: ver_historia.emit())
@@ -285,6 +309,15 @@ func mostrar_cutscene(cenas: Array, ao_terminar: Callable) -> void:
 	_atual = c
 	add_child(c)
 	c.iniciar(cenas)
+	c.terminou.connect(ao_terminar)
+
+
+## Créditos rolando (creditos.gd); "ao_terminar" é chamado no fim ou ao pular.
+func mostrar_creditos(ao_terminar: Callable) -> void:
+	limpar()
+	var c = UI.tela_cheia(Creditos.new())
+	_atual = c
+	add_child(c)
 	c.terminou.connect(ao_terminar)
 
 
@@ -323,7 +356,7 @@ func mostrar_fim(vitoria: bool, titulo: String, mensagem: String, estatisticas: 
 		_campo_ranking(caixa, ranking)
 
 	var linha := _linha_botoes(caixa)
-	var tem_proxima := indice_fase + 1 < Config.FASES.size()
+	var tem_proxima := indice_fase + 1 < Config.FASES.size()   # o Final de semana não tem próxima
 	if vitoria and tem_proxima:
 		_botao(linha, "PRÓXIMA FASE", Config.COR_LARANJA, Config.COR_PRETO, 250,
 			func() -> void: jogar_fase.emit(indice_fase + 1))
@@ -362,7 +395,8 @@ func _campo_ranking(caixa: VBoxContainer, r: Dictionary) -> void:
 		var pos := Ranking.registrar(r.dif_id, r.fase, campo.text, r.pontos)
 		for filho in linha.get_children():
 			filho.queue_free()
-		var feito := UI.label("#%d NO RANKING DA FASE %d!" % [pos, r.fase + 1] if pos > 0 else "Não entrou no ranking.",
+		var onde := "DO FINAL DE SEMANA" if r.fase == Config.FASE_FDS else "DA FASE %d" % (r.fase + 1)
+		var feito := UI.label("#%d NO RANKING %s!" % [pos, onde] if pos > 0 else "Não entrou no ranking.",
 			22, Config.COR_AMARELO, 4)
 		linha.add_child(feito)
 		Som.tocar("compra")
@@ -378,14 +412,14 @@ func mostrar_ranking(d: Dictionary, dif_id: String, fase: int = 0) -> void:
 	_titulo(caixa, "RANKING · %s" % d.nome, 52, d.cor)
 	var abas := _linha_botoes(caixa)
 	abas.add_theme_constant_override("separation", 8)
-	for i in Config.FASES.size():
+	for i in Config.FASES.size() + 1:   # as 5 fases e o Final de semana
 		var atual := i == fase
-		var b: Button = UI.botao("FASE %d" % (i + 1), Config.COR_LARANJA if atual else Config.COR_CINZA,
-			Config.COR_PRETO if atual else Config.COR_PAPEL, 18)
+		var b: Button = UI.botao("FIM DE SEMANA" if i == Config.FASE_FDS else "FASE %d" % (i + 1),
+			Config.COR_LARANJA if atual else Config.COR_CINZA, Config.COR_PRETO if atual else Config.COR_PAPEL, 18)
 		b.custom_minimum_size = Vector2(130, 48)
 		b.pressed.connect(func() -> void: mostrar_ranking(d, dif_id, i))
 		abas.add_child(b)
-	_titulo(caixa, Config.FASES[fase].nome, 24, Config.COR_PAPEL)
+	_titulo(caixa, Config.def_fase(fase).nome, 24, Config.COR_PAPEL)
 
 	var tabela := GridContainer.new()
 	tabela.columns = 4
@@ -449,7 +483,10 @@ func anunciar_conquista(nome: String, descricao: String) -> void:
 		pilha = VBoxContainer.new()
 		pilha.name = "Avisos"
 		pilha.add_theme_constant_override("separation", 8)
-		pilha.position = Vector2(get_viewport().get_visible_rect().size.x - 376.0, 16.0)
+		# Encostada à direita, logo abaixo da barra do HUD (o tamanho muda com o texto)
+		pilha.position = Vector2(get_viewport().get_visible_rect().size.x - 376.0, 64.0)
+		pilha.resized.connect(func() -> void:
+			pilha.position.x = get_viewport().get_visible_rect().size.x - pilha.size.x - 16.0)
 		pilha.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(pilha)
 	var cartao := PanelContainer.new()
@@ -477,7 +514,7 @@ func anunciar_conquista(nome: String, descricao: String) -> void:
 func mostrar_pausa(indice_fase: int, nome_fase: String) -> void:
 	var caixa := _base(0.75)
 	_titulo(caixa, "PAUSADO", 72, Config.COR_LARANJA)
-	_titulo(caixa, "Fase %d: %s" % [indice_fase + 1, nome_fase], 26, Config.COR_PAPEL)
+	_titulo(caixa, nome_fase, 26, Config.COR_PAPEL)
 	var coluna := VBoxContainer.new()
 	coluna.add_theme_constant_override("separation", 12)
 	caixa.add_child(coluna)
